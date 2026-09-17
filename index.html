@@ -1,0 +1,762 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Naloty na Ukrainę 2022–2026 — mapa 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
+<meta name="description" content="Trójwymiarowa mapa rosyjskich nalotów powietrznych na Ukrainę od 24 lutego 2022, z naciskiem na to, ile z nich dociera na zachód kraju.">
+<style>
+:root{--paper:#E9ECE6;--ink:#12262E;--west:#A33B28;--petrol:#2B5D74;--rule:rgba(18,38,46,.18);--deep:#0A1720}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5;
+ font-family:"IBM Plex Sans",ui-sans-serif,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1140px;margin:0 auto;padding:26px 18px 64px}
+h1{font-family:"Fraunces",Georgia,serif;font-size:clamp(28px,4.6vw,44px);line-height:1.06;margin:0 0 10px;
+ font-weight:500;letter-spacing:-.6px;max-width:21ch;font-variation-settings:"opsz" 144}
+.lede{margin:0 0 20px;max-width:66ch;opacity:.84}
+
+#stage{position:relative;width:100%;aspect-ratio:16/9;min-height:380px;background:var(--deep);
+ border:1px solid var(--ink);overflow:hidden;touch-action:none;
+ box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 24px 60px -30px rgba(18,38,46,.55)}
+#gl,#lbl{position:absolute;inset:0}
+#gl canvas{display:block;width:100%;height:100%}
+#lbl{pointer-events:none;overflow:hidden}
+.city{position:absolute;transform:translate(-50%,-50%);font-size:11.5px;font-weight:500;color:#EEF1EC;
+ text-shadow:0 1px 3px rgba(0,0,0,.9),0 0 10px rgba(0,0,0,.6);white-space:nowrap;letter-spacing:.2px;opacity:0;transition:opacity .4s}
+.city.w{color:#FFC7AE}
+.city i{display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:5px;vertical-align:1px}
+.obl{position:absolute;transform:translate(-50%,-50%);font-size:9.5px;font-weight:500;color:#3C3A34;
+ letter-spacing:.35px;white-space:nowrap;opacity:0;transition:opacity .35s;text-transform:lowercase}
+.cty{position:absolute;transform:translate(-50%,-50%);font-size:12px;font-weight:600;letter-spacing:2.6px;
+ color:#B9C6CC;opacity:.55;white-space:nowrap;text-shadow:0 1px 2px rgba(0,0,0,.6)}
+.cty.sea{color:#7FA3B4;letter-spacing:3px;font-weight:500;opacity:.45}
+
+#hud{position:absolute;left:0;right:0;top:0;padding:16px 18px 34px;pointer-events:none;color:#EEF1EC;
+ background:linear-gradient(to bottom,rgba(10,23,32,.88),rgba(10,23,32,0)) top/100% 130px no-repeat}
+#date{font-family:"Fraunces",Georgia,serif;font-size:clamp(26px,3.8vw,40px);font-weight:500;letter-spacing:-.4px;
+ line-height:1.02;font-variant-numeric:tabular-nums;font-variation-settings:"opsz" 144}
+#day{font-size:12px;opacity:.6;margin-top:2px;font-variant-numeric:tabular-nums}
+#stats{position:absolute;left:0;right:0;bottom:0;padding:26px 18px 14px;pointer-events:none;color:#EEF1EC;
+ background:linear-gradient(to top,rgba(10,23,32,.94),rgba(10,23,32,0));display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end}
+#stats b{display:block;font-size:clamp(17px,2.3vw,23px);font-weight:600;letter-spacing:-.5px;line-height:1.15;font-variant-numeric:tabular-nums}
+#stats span{font-size:11px;opacity:.66}
+#stats .est b::after{content:" ≈";font-size:.6em;opacity:.5;font-weight:400}
+#stats .wz b{color:#F79470}
+#flash{margin-top:10px;pointer-events:none;color:#EEF1EC;max-width:430px;
+ opacity:0;transform:translateY(-6px);transition:opacity .45s,transform .45s}
+#flash.on{opacity:1;transform:none}
+#flash h3{margin:0 0 3px;font-size:15px;font-weight:600;color:#F79470}
+#flash p{margin:0;font-size:13px;line-height:1.45;opacity:.92;text-shadow:0 1px 4px rgba(0,0,0,.85)}
+#hint{position:absolute;right:14px;top:14px;font-size:11px;color:#EEF1EC;opacity:.4;pointer-events:none;text-align:right;line-height:1.5}
+
+#tip{position:absolute;pointer-events:none;background:rgba(10,23,32,.92);color:#EEF1EC;border:1px solid rgba(255,255,255,.12);
+ padding:7px 10px;font-size:12px;line-height:1.4;border-radius:2px;opacity:0;transition:opacity .12s;max-width:240px;
+ transform:translate(12px,12px);white-space:nowrap}
+#tip.on{opacity:1}
+#tip b{font-weight:600;display:block}
+#tip .k{opacity:.65}
+#panel{position:absolute;right:14px;top:44px;width:min(300px,calc(100% - 28px));background:rgba(10,23,32,.94);color:#EEF1EC;
+ border:1px solid rgba(255,255,255,.14);padding:14px 16px 12px;border-radius:2px;display:none;font-size:13px;line-height:1.45}
+#panel.on{display:block}
+#panel h3{margin:0 0 2px;font-family:"Fraunces",Georgia,serif;font-size:19px;font-weight:500;letter-spacing:-.2px}
+#panel .sub{font-size:11.5px;opacity:.6;margin-bottom:9px}
+#panel .row{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-top:1px solid rgba(255,255,255,.09);font-variant-numeric:tabular-nums}
+#panel .row b{font-weight:600}
+#panel .evl{margin:8px 0 0;padding:0;list-style:none;font-size:12.5px}
+#panel .evl li{padding:5px 0;border-top:1px solid rgba(255,255,255,.09)}
+#panel .evl i{font-style:normal;opacity:.6;font-variant-numeric:tabular-nums;margin-right:6px}
+#panel .x{position:absolute;right:4px;top:2px;background:none;border:0;color:#EEF1EC;opacity:.6;font-size:22px;line-height:1;cursor:pointer;padding:8px 12px}
+#panel .x:hover{opacity:1;background:none;color:#fff}
+#boot{position:absolute;inset:0;display:grid;place-items:center;color:#9FB3BD;font-size:14px;background:var(--deep);z-index:5;transition:opacity .5s}
+#boot.gone{opacity:0;pointer-events:none}
+
+#track{position:relative;height:96px;margin:14px 0 0;cursor:pointer;user-select:none}
+#track .base{position:absolute;left:0;right:0;top:62px;height:2px;background:var(--rule)}
+#track .bar{position:absolute;bottom:34px;background:#B6BFB8;opacity:.7;transition:background .3s,opacity .3s}
+#track .bar.m{background:#5F8BA0;opacity:.75}
+#track .bar.past{background:#8C6A50;opacity:.85}
+#track .bar.past.m{background:var(--petrol);opacity:.95}
+#track .bar.now{background:var(--west);opacity:1}
+#track .bar.part{background:repeating-linear-gradient(135deg,var(--petrol) 0 3px,transparent 3px 6px)}
+#track .fill{position:absolute;left:0;top:61px;height:4px;background:var(--west)}
+#track .ev{position:absolute;top:64px;width:8px;height:18px;margin-left:-3px;opacity:.35;cursor:pointer}
+#track .ev::before{content:"";position:absolute;left:3px;top:2px;width:2px;height:14px;background:var(--west)}
+#track .ev:hover{opacity:1}
+#track .ev.hit{opacity:1}
+#track .ev.hit::before{top:0;height:18px}
+#track .head{position:absolute;top:4px;width:2px;height:82px;background:var(--ink);opacity:.85;pointer-events:none}
+#track .head::after{content:"";position:absolute;left:-5px;top:-5px;width:12px;height:12px;border-radius:50%;background:var(--ink)}
+#track .yr{position:absolute;top:80px;font-size:11px;opacity:.55;transform:translateX(-50%);font-variant-numeric:tabular-nums}
+#track .cap{position:absolute;left:0;top:0;font-size:10.5px;opacity:.5;letter-spacing:.2px}
+
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0}
+.ctl .lbl{font-size:11.5px;opacity:.55;letter-spacing:.3px;margin-right:2px}
+button{font:inherit;color:inherit;background:transparent;border:1px solid var(--ink);padding:6px 14px;border-radius:2px;
+ cursor:pointer;font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+button:hover{background:var(--ink);color:var(--paper)}
+button.on{background:var(--west);border-color:var(--west);color:#fff}
+button.tg{padding:5px 11px;font-size:13px;border-color:rgba(18,38,46,.35)}
+button.tg.on{background:var(--petrol);border-color:var(--petrol)}
+button:focus-visible{outline:2px solid var(--west);outline-offset:2px}
+.sep{width:1px;height:24px;background:var(--rule);margin:0 4px}
+kbd{font:inherit;font-size:11px;padding:0 5px;border:1px solid rgba(18,38,46,.35);border-radius:2px;opacity:.7}
+
+.legend{display:flex;gap:18px 22px;flex-wrap:wrap;list-style:none;padding:0;margin:18px 0 0;font-size:13px;opacity:.86}
+.legend li{display:flex;align-items:center;gap:7px}
+.sw{width:11px;height:11px;border-radius:50%}
+.sw.sq{border-radius:1px;width:16px;height:4px}
+h2{font-size:15px;font-weight:600;margin:34px 0 10px;padding-top:20px;border-top:1px solid var(--rule)}
+.note{font-size:13.5px;opacity:.76;max-width:74ch;margin:0 0 12px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;max-width:640px}
+th{text-align:left;font-weight:500;opacity:.6;font-size:12px;padding:0 0 6px;border-bottom:1px solid var(--rule)}
+td{padding:7px 0;border-bottom:1px solid rgba(18,38,46,.1)}
+td.n,th.n{text-align:right;white-space:nowrap;padding-right:14px}
+th{padding-right:10px}
+@media(max-width:640px){
+#stage{aspect-ratio:4/5;min-height:0}
+#hint{display:none}
+#hud{padding:12px 14px 28px}
+#date{font-size:24px}
+#flash{max-width:none;margin-top:8px}
+#flash h3{font-size:14px}#flash p{font-size:12px}
+#stats{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;padding:26px 14px 10px}
+#stats b{font-size:19px}
+#stats span{display:block;font-size:10.5px;line-height:1.3}
+#panel{top:auto;bottom:0;left:0;right:0;width:100%;max-height:58%;overflow:auto;border-width:1px 0 0;border-radius:0}
+#track{height:88px}
+.ctl{gap:6px}
+.ctl .lbl{flex-basis:100%;margin:6px 0 -2px}
+.sep{display:none}
+button{padding:9px 13px}
+button.tg{padding:8px 11px}
+.legend{gap:10px 16px}
+td{padding:8px 0}
+}
+@media(hover:none){#hint{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<h1>Naloty na Ukrainę, 24 lutego 2022 – dziś</h1>
+<p class="lede">Cała wojna powietrzna na jednej osi czasu, na mapie politycznej: obwody, sąsiedzi,
+granica NATO, tereny okupowane. Kliknij obwód, żeby zobaczyć, co w niego doleciało. Najedź na
+lecący obiekt, żeby sprawdzić, dokąd leci i ile mu zostało. Gdy oś czasu dojdzie do udokumentowanego
+nalotu, zegar sam zwalnia do ok. godziny na sekundę: obiekty startują o zaplanowanych godzinach
+i uderzają tej samej nocy, a potem czas wraca do normalnego biegu.</p>
+
+<div id="stage">
+  <div id="gl"></div>
+  <div id="lbl"></div>
+  <div id="hud"><div id="date">—</div><div id="day">—</div><div id="flash"><h3 id="fh"></h3><p id="fp"></p></div></div>
+  <div id="hint">przeciągnij — obrót · kółko — zbliżenie<br>klik obwód — szczegóły · <kbd>spacja</kbd> pauza<br><span id="fresh"></span></div>
+  <div id="tip"></div>
+  <div id="panel"><button class="x" id="px" aria-label="Zamknij">×</button><div id="pc"></div></div>
+  <div id="stats">
+    <div><b id="sRate">—</b><span>dronów dziennie</span></div>
+    <div class="est"><b id="sTot">—</b><span>wystrzelonych narastająco</span></div>
+    <div class="wz"><b id="sWest">—</b><span>na zachód, ostatni udokumentowany nalot</span></div>
+    <div class="wz est"><b id="sWestCum">0</b><span>na zachód, udokumentowane łącznie</span></div>
+  </div>
+  <div id="boot">Budowanie mapy…</div>
+</div>
+
+<div id="track"><div class="cap">wystrzeleń miesięcznie · kliknij znacznik, żeby odtworzyć nalot</div><div class="base"></div>
+<div class="fill" id="tFill"></div><div class="head" id="tHead"></div></div>
+
+<div class="ctl">
+  <button id="play">Pauza</button><button id="rewind">Od początku</button>
+  <span class="sep"></span>
+  <button class="spd" data-s="1">1×</button><button class="spd on" data-s="3">3×</button><button class="spd" data-s="8">8×</button>
+  <span class="lbl" style="margin-left:4px">tempo nocy nalotu skaluje się z prędkością</span>
+  <span class="sep"></span>
+  <span class="lbl">WIDOK</span>
+  <button class="cam" data-v="all">Cały kraj</button><button class="cam" data-v="west">Zachód</button>
+  <button class="cam" data-v="front">Front</button><button class="cam" data-v="top">Z góry</button>
+</div>
+<div class="ctl">
+  <span class="lbl">WARSTWY</span>
+  <button class="tg on" data-l="heat">Poświata</button><button class="tg on" data-l="routes">Trasy</button>
+  <button class="tg on" data-l="obl">Obwody</button><button class="tg on" data-l="nbr">Sąsiedzi</button>
+  <button class="tg on" data-l="shadow">Cienie</button><button class="tg on" data-l="rings">Zasięg 400/800/1200 km</button>
+  <span class="sep"></span>
+  <button id="quality">Jakość: wysoka</button>
+</div>
+
+<ul class="legend">
+  <li><span class="sw" style="background:#E0A050"></span>drony delta, główny strumień</li>
+  <li><span class="sw" style="background:#F0764C"></span>drony na zachód</li>
+  <li><span class="sw" style="background:#BFD9E6"></span>rakiety manewrujące, z płomieniem</li>
+  <li><span class="sw sq" style="background:#6FB1D6"></span>granica NATO</li>
+  <li><span class="sw sq" style="background:#E0B060"></span>granica z Białorusią</li>
+  <li><span class="sw sq" style="background:#E06A50"></span>granica z Rosją</li>
+  <li><span class="sw" style="background:#E3CDB0;border:1px solid #7A7466"></span>obwody zachodnie</li>
+  <li><span class="sw" style="background:radial-gradient(#FFB070,#B8542F 70%,transparent)"></span>poświata: nagromadzenie trafień</li>
+</ul>
+
+<h2>Skąd biorą się liczby</h2>
+<p class="note">Miesięczne wolumeny za okres sierpień 2025 – lipiec 2026 pochodzą z zestawień ISIS opartych
+na dobowych raportach ukraińskich Sił Powietrznych. Wcześniejsze okresy nie mają opublikowanej serii
+miesięcznej — tempo jest wyliczone z sum rocznych i cząstkowych, na osi czasu zaznaczone szarym słupkiem.</p>
+<table>
+  <tr><th>Okres</th><th class="n">Wystrzeleń</th><th>Podstawa</th></tr>
+  <tr><td>IX–XII 2022</td><td class="n">~660</td><td>suma roczna, rozłożona równo</td></tr>
+  <tr><td>2023</td><td class="n">~3 300</td><td>2022 i 2023 razem ok. 4 000</td></tr>
+  <tr><td>I–X 2024</td><td class="n">6 987</td><td>Sztab Generalny; sam X — 2 023</td></tr>
+  <tr><td>I–VII 2025</td><td class="n">~28 890</td><td>suma roczna minus zmierzone VIII–XII</td></tr>
+  <tr><td>VIII 2025 – VII 2026</td><td class="n">62 994</td><td>seria miesięczna ISIS</td></tr>
+  <tr><td>od VIII 2026</td><td class="n">codziennie</td><td>poranne podsumowania Sił Powietrznych, pobierane automatycznie</td></tr>
+</table>
+<p class="note" style="margin-top:12px">Od sierpnia 2026 liczby dzienne pochodzą wprost z porannych komunikatów Sił Powietrznych
+(kanał @kpszsu). Skrypt w repo czyta je raz dziennie i dopisuje do <code>data/daily.json</code>; strona
+przy starcie pobiera ten plik i przelicza ostatnie miesiące. Ograniczenie źródła, nie skryptu: od maja 2026
+Siły Powietrzne raportują tylko okno nocne, a od 10 sierpnia 2026 nie podają liczby części typów rakiet.
+Bieżący miesiąc na osi ma słupek kreskowany, przeskalowany do pełnych 30 dni.</p>
+<p class="note">Granice obwodów: geoBoundaries (gbOpen, ADM1). Granice państw: Natural Earth 50m.
+Linia frontu przybliżona. Do 2024 liczono faktyczne Shahedy, od 2025 wszystkie BSP typu Shahed razem z wabikami —
+licznik narastający miesza dwie definicje, stąd znak przybliżenia.</p>
+<p class="note">Noc nalotu: obiekty na zachód lecą w skali 1:1, reszta salwy krajowej na osie wschód–centrum
+w skali 1:5 dla dronów i 1:1 dla rakiet, z ok. 90 % przechwyceń — to średnia krajowa, nie dane per obiekt.
+Starty rozłożone na pierwsze 2–3 godziny, rakiety później niż drony, tak jak w atakach kombinowanych.
+Czas lotu liczony z odległości i prędkości przelotowej, więc rakieta z Morza Czarnego dolatuje do Lwowa
+w godzinę, a Shahed z Briańska w ponad cztery.</p>
+<p class="note">Czego tu nie ma: ciągłej serii dziennej dla zachodu. Liczby per obwód podają obwodowe
+administracje wojskowe, nieregularnie i tylko przy większych nalotach. Licznik „na zachód" zapala się wyłącznie
+w dni, w które taka liczba została opublikowana. Rozkład głównego strumienia na sześć osi wschód–centrum jest
+losowy, bo podziału dobowego na kierunki nikt nie publikuje — tempo jest prawdziwe, przypisanie nie.</p>
+
+</div>
+
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+}}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls}    from 'three/addons/controls/OrbitControls.js';
+import {EffectComposer}   from 'three/addons/postprocessing/EffectComposer.js';
+import {RenderPass}       from 'three/addons/postprocessing/RenderPass.js';
+import {UnrealBloomPass}  from 'three/addons/postprocessing/UnrealBloomPass.js';
+import {OutputPass}       from 'three/addons/postprocessing/OutputPass.js';
+import {ShaderPass}       from 'three/addons/postprocessing/ShaderPass.js';
+import {VignetteShader}   from 'three/addons/shaders/VignetteShader.js';
+import {RoomEnvironment}  from 'three/addons/environments/RoomEnvironment.js';
+import {mergeGeometries}  from 'three/addons/utils/BufferGeometryUtils.js';
+import {Line2}            from 'three/addons/lines/Line2.js';
+import {LineMaterial}     from 'three/addons/lines/LineMaterial.js';
+import {LineGeometry}     from 'three/addons/lines/LineGeometry.js';
+
+/* ══════════════ 1. DANE ══════════════ */
+const GEO={"obl":[{"n":"Kijów","c":[30.55,50.44],"p":[[30.83,50.41],[30.74,50.5],[30.82,50.57],[30.72,50.59],[30.56,50.51],[30.46,50.58],[30.31,50.57],[30.34,50.56],[30.24,50.43],[30.35,50.45],[30.59,50.21],[30.65,50.24],[30.61,50.36]],"w":0,"city":1,"k":0},{"n":"Sewastopol","c":[33.48,44.55],"p":[[33.3,44.94],[33.25,44.76],[33.11,44.65],[33.11,44.51],[33.3,44.33],[33.7,44.19],[33.76,44.39],[33.93,44.42],[33.9,44.48],[33.72,44.62],[33.78,44.69],[33.62,44.71],[33.68,44.79]],"w":0,"city":1,"k":0},{"n":"chersoński","c":[33.47,46.55],"p":[[35.23,45.79],[35.15,45.93],[35.33,45.99],[35.47,46.15],[35.28,46.26],[35.07,46.3],[35.05,46.48],[34.89,46.51],[34.89,46.56],[34.76,46.55],[34.71,46.62],[34.76,46.63],[34.75,46.68],[34.63,46.69],[34.82,46.83],[34.74,46.96],[34.62,46.97],[34.52,47.1],[34.49,47.25],[34.53,47.27],[34.48,47.32],[34.52,47.34],[34.31,47.27],[34.22,47.45],[33.95,47.46],[33.93,47.52],[33.64,47.48],[33.57,47.52],[33.58,47.6],[33.31,47.48],[33.29,47.54],[33.22,47.53],[33.23,47.58],[33.09,47.58],[33.09,47.53],[33.14,47.54],[33.14,47.42],[33.07,47.41],[33.07,47.47],[33.04,47.39],[33.12,47.39],[33.11,47.28],[33.18,47.24],[32.92,47.14],[32.92,47.09],[33.07,47.02],[33.02,46.97],[32.95,47.0],[32.98,46.93],[32.84,46.9],[32.95,46.86],[32.7,46.82],[32.54,46.88],[32.53,46.82],[32.34,46.8],[32.23,46.85],[32.22,46.77],[32.06,46.74],[32.09,46.68],[31.94,46.65],[31.81,46.48],[31.83,46.35],[31.16,46.41],[31.24,46.4],[31.27,46.22],[31.42,46.09],[32.45,45.87],[32.77,45.83],[33.54,46.01],[33.65,46.23],[34.34,46.06],[34.48,45.94],[34.63,45.99],[34.8,45.9],[34.8,45.81],[34.96,45.76]],"w":0,"city":0,"k":0},{"n":"wołyński","c":[24.87,51.19],"p":[[25.11,50.29],[25.17,50.33],[25.14,50.37],[25.21,50.38],[25.08,50.48],[25.15,50.47],[25.12,50.55],[25.3,50.54],[25.29,50.63],[25.41,50.61],[25.35,50.64],[25.38,50.69],[25.46,50.66],[25.61,50.72],[25.69,50.72],[25.83,50.62],[25.9,50.83],[26.04,50.84],[25.97,50.96],[26.11,51.01],[25.94,51.08],[26.07,51.18],[25.83,51.33],[25.83,51.39],[25.7,51.38],[25.62,51.5],[25.56,51.5],[25.6,51.58],[25.53,51.63],[25.64,51.68],[25.68,51.76],[25.64,51.85],[25.71,51.89],[25.19,51.97],[24.93,51.89],[24.39,51.88],[24.3,51.81],[24.32,51.75],[24.0,51.58],[23.78,51.67],[23.61,51.62],[23.68,51.51],[23.62,51.5],[23.7,51.42],[23.65,51.29],[23.87,51.15],[23.97,50.95],[24.15,50.87],[23.96,50.79],[24.07,50.72],[24.09,50.64],[24.53,50.55],[24.6,50.41],[24.71,50.34],[24.94,50.35],[24.94,50.39]],"w":1,"city":0,"k":0},{"n":"rówieński","c":[26.39,51.04],"p":[[25.11,50.29],[25.2,50.28],[25.17,50.21],[25.2,50.13],[25.35,50.0],[25.49,50.1],[25.45,50.12],[25.48,50.17],[26.22,50.27],[26.18,50.2],[26.27,50.18],[26.4,50.27],[26.5,50.26],[26.83,50.52],[26.98,50.52],[27.12,50.59],[27.23,50.57],[27.19,50.63],[27.28,50.72],[27.2,51.0],[27.33,51.04],[27.4,51.2],[27.47,51.24],[27.44,51.31],[27.52,51.34],[27.5,51.45],[27.61,51.4],[27.58,51.48],[27.67,51.5],[27.73,51.59],[27.56,51.64],[27.51,51.59],[27.24,51.6],[27.27,51.65],[27.21,51.67],[27.21,51.77],[26.95,51.74],[26.01,51.93],[25.59,51.92],[25.71,51.89],[25.64,51.85],[25.68,51.76],[25.64,51.68],[25.53,51.63],[25.6,51.58],[25.56,51.5],[25.62,51.5],[25.7,51.38],[25.83,51.39],[25.83,51.33],[26.07,51.18],[25.94,51.08],[26.11,51.01],[25.97,50.96],[26.04,50.84],[25.9,50.83],[25.83,50.62],[25.69,50.72],[25.61,50.72],[25.46,50.66],[25.38,50.69],[25.35,50.64],[25.41,50.61],[25.29,50.63],[25.3,50.54],[25.12,50.55],[25.15,50.47],[25.08,50.48],[25.21,50.38],[25.14,50.37],[25.17,50.33]],"w":1,"city":0,"k":1},{"n":"żytomierski","c":[28.47,50.64],"p":[[27.2,50.56],[27.3,50.49],[27.25,50.39],[27.32,50.33],[27.52,50.23],[27.6,50.26],[27.62,50.17],[27.66,50.19],[27.61,50.09],[27.68,50.04],[27.55,50.01],[27.55,49.9],[27.63,49.89],[27.65,49.81],[27.78,49.73],[28.24,49.81],[28.38,49.78],[28.42,49.82],[28.57,49.77],[28.88,49.89],[29.0,49.74],[28.95,49.68],[29.01,49.63],[28.99,49.6],[29.28,49.59],[29.28,49.63],[29.51,49.65],[29.44,49.8],[29.65,49.86],[29.74,49.94],[29.65,50.11],[29.69,50.32],[29.61,50.34],[29.64,50.37],[29.56,50.42],[29.44,50.42],[29.51,50.47],[29.46,50.52],[29.51,50.57],[29.44,50.62],[29.6,50.73],[29.47,50.77],[29.55,50.82],[29.41,50.95],[29.51,51.06],[29.31,51.14],[29.27,51.27],[29.36,51.28],[29.39,51.38],[29.33,51.38],[29.26,51.57],[29.17,51.65],[28.82,51.56],[28.76,51.42],[28.74,51.47],[28.69,51.44],[28.66,51.57],[28.47,51.59],[28.36,51.54],[28.26,51.62],[28.26,51.68],[28.05,51.57],[27.95,51.56],[27.98,51.6],[27.84,51.63],[27.85,51.55],[27.76,51.47],[27.67,51.52],[27.58,51.48],[27.61,51.4],[27.5,51.45],[27.52,51.34],[27.44,51.31],[27.47,51.24],[27.4,51.2],[27.33,51.04],[27.2,51.0],[27.28,50.72],[27.2,50.66],[27.23,50.57]],"w":0,"city":0,"k":0},{"n":"kijowski","c":[30.46,50.3],"p":[[29.51,49.65],[29.59,49.44],[29.5,49.37],[29.64,49.25],[29.71,49.26],[29.76,49.18],[29.88,49.19],[29.95,49.31],[30.03,49.33],[30.11,49.27],[30.14,49.33],[30.2,49.33],[30.19,49.28],[30.38,49.24],[30.47,49.37],[30.52,49.33],[30.91,49.36],[30.92,49.42],[31.15,49.56],[31.14,49.6],[31.22,49.69],[31.21,49.85],[31.38,49.91],[31.29,49.95],[31.3,49.99],[31.44,49.98],[31.43,49.9],[31.5,49.84],[31.58,49.91],[31.71,49.85],[31.81,49.97],[31.92,49.96],[31.9,50.02],[31.98,50.05],[31.91,50.06],[31.98,50.13],[31.93,50.16],[32.11,50.22],[32.09,50.28],[32.16,50.37],[31.97,50.47],[32.06,50.54],[31.96,50.54],[31.86,50.63],[31.63,50.52],[31.33,50.5],[31.16,50.59],[31.23,50.61],[31.22,50.68],[31.13,50.77],[30.74,50.77],[30.77,50.87],[30.68,50.9],[30.6,51.03],[30.5,51.02],[30.49,51.17],[30.54,51.18],[30.51,51.23],[30.56,51.25],[30.32,51.36],[30.35,51.42],[30.25,51.49],[30.03,51.51],[29.8,51.44],[29.74,51.46],[29.74,51.53],[29.54,51.48],[29.5,51.4],[29.36,51.39],[29.4,51.32],[29.36,51.28],[29.27,51.27],[29.32,51.13],[29.35,51.16],[29.51,51.06],[29.41,50.95],[29.55,50.82],[29.47,50.77],[29.6,50.73],[29.44,50.62],[29.51,50.57],[29.46,50.52],[29.51,50.47],[29.44,50.42],[29.56,50.42],[29.64,50.37],[29.61,50.34],[29.69,50.32],[29.65,50.11],[29.74,49.94],[29.65,49.86],[29.44,49.8]],"w":0,"city":0,"k":1},{"n":"czernihowski","c":[32.01,51.36],"p":[[32.14,50.35],[32.27,50.35],[32.34,50.43],[32.49,50.4],[32.53,50.35],[32.79,50.35],[33.02,50.47],[33.12,50.59],[33.14,50.71],[33.24,50.73],[33.15,50.79],[33.2,50.96],[33.04,50.99],[33.07,51.07],[32.94,51.09],[33.07,51.26],[33.08,51.34],[33.02,51.4],[33.13,51.38],[33.14,51.49],[33.19,51.51],[33.16,51.57],[33.22,51.58],[33.13,51.64],[33.17,51.7],[33.08,51.77],[33.15,51.82],[33.12,51.86],[33.39,51.95],[33.32,52.03],[33.5,52.04],[33.5,52.09],[33.32,52.14],[33.41,52.37],[33.19,52.38],[32.89,52.25],[32.38,52.34],[32.4,52.25],[32.32,52.22],[32.32,52.15],[32.37,52.15],[32.1,52.03],[31.92,52.04],[31.96,52.07],[31.87,52.11],[31.43,52.14],[31.25,52.04],[31.14,52.1],[30.95,52.09],[30.94,52.01],[30.73,51.89],[30.61,51.77],[30.65,51.76],[30.63,51.71],[30.56,51.7],[30.58,51.65],[30.51,51.6],[30.59,51.54],[30.62,51.46],[30.58,51.45],[30.66,51.34],[30.51,51.23],[30.54,51.18],[30.48,51.09],[30.5,51.02],[30.6,51.03],[30.68,50.9],[30.77,50.87],[30.74,50.77],[31.13,50.77],[31.22,50.68],[31.23,50.61],[31.16,50.59],[31.33,50.5],[31.63,50.52],[31.86,50.63],[31.96,50.54],[32.06,50.54],[31.96,50.49]],"w":0,"city":0,"k":0},{"n":"sumski","c":[34.13,51.1],"p":[[33.07,50.52],[33.22,50.5],[33.27,50.55],[33.43,50.48],[33.73,50.46],[33.95,50.55],[34.1,50.48],[34.22,50.53],[34.25,50.44],[34.57,50.23],[34.55,50.13],[34.63,50.11],[34.73,50.16],[35.04,50.16],[35.15,50.24],[35.26,50.23],[35.33,50.32],[35.52,50.29],[35.69,50.35],[35.6,50.37],[35.59,50.45],[35.39,50.58],[35.39,50.65],[35.5,50.68],[35.46,50.69],[35.49,50.78],[35.41,50.8],[35.4,50.91],[35.33,50.95],[35.32,51.01],[35.41,51.04],[35.15,51.08],[35.15,51.22],[34.98,51.24],[34.82,51.17],[34.69,51.18],[34.66,51.25],[34.23,51.27],[34.34,51.36],[34.22,51.42],[34.31,51.52],[34.08,51.67],[34.42,51.72],[34.42,51.83],[34.1,52.0],[34.06,52.07],[34.12,52.14],[33.8,52.37],[33.56,52.3],[33.45,52.36],[33.39,52.32],[33.32,52.14],[33.5,52.09],[33.5,52.04],[33.32,52.03],[33.39,51.95],[33.19,51.91],[33.08,51.78],[33.17,51.7],[33.13,51.64],[33.22,51.58],[33.16,51.57],[33.19,51.51],[33.14,51.49],[33.13,51.38],[33.02,51.4],[33.08,51.34],[33.07,51.26],[32.94,51.09],[33.07,51.07],[33.04,50.99],[33.2,50.96],[33.15,50.79],[33.24,50.73],[33.14,50.71]],"w":0,"city":0,"k":1},{"n":"charkowski","c":[36.51,49.61],"p":[[34.94,50.15],[34.96,50.07],[34.86,49.95],[35.22,49.83],[35.24,49.69],[35.43,49.67],[35.49,49.57],[35.4,49.56],[35.49,49.51],[35.33,49.5],[35.38,49.4],[35.27,49.28],[35.02,49.33],[34.98,49.25],[35.02,49.15],[35.19,49.16],[35.23,49.13],[35.19,49.11],[35.49,48.97],[35.81,48.93],[35.94,49.0],[36.04,48.92],[36.01,48.89],[36.06,48.81],[36.16,48.78],[36.14,48.72],[36.28,48.66],[36.3,48.53],[36.48,48.66],[36.59,48.6],[36.74,48.63],[36.72,48.81],[37.04,48.75],[36.99,48.79],[37.1,48.85],[37.19,48.81],[37.19,48.88],[37.33,48.92],[37.29,48.97],[37.38,49.05],[37.58,49.13],[37.5,49.18],[37.57,49.23],[37.84,49.2],[37.96,49.28],[37.88,49.31],[37.84,49.51],[38.05,49.66],[37.95,49.73],[38.05,49.78],[38.02,49.84],[38.09,49.85],[37.93,50.03],[37.75,50.08],[37.64,50.18],[37.64,50.31],[37.48,50.36],[37.48,50.46],[37.15,50.36],[36.87,50.34],[36.65,50.22],[36.43,50.33],[36.3,50.29],[36.14,50.44],[35.83,50.43],[35.65,50.31],[35.33,50.32],[35.26,50.23],[35.15,50.24]],"w":0,"city":0,"k":0},{"n":"ługański","c":[39.02,48.99],"p":[[37.87,49.23],[37.94,49.21],[37.89,49.17],[37.93,49.14],[38.08,49.15],[38.05,49.06],[38.1,48.99],[38.01,48.95],[38.23,48.94],[38.22,48.84],[38.31,48.83],[38.26,48.75],[38.31,48.68],[38.23,48.63],[38.32,48.51],[38.29,48.48],[38.43,48.45],[38.5,48.37],[38.43,48.28],[38.57,48.27],[38.6,48.17],[38.82,48.12],[38.83,48.03],[39.04,48.01],[39.08,47.85],[39.74,47.83],[39.82,47.96],[39.78,48.04],[39.88,48.04],[39.83,48.07],[39.94,48.23],[40.01,48.23],[39.99,48.32],[39.92,48.27],[39.84,48.31],[39.95,48.35],[39.85,48.47],[39.85,48.57],[39.66,48.61],[39.8,48.84],[39.98,48.79],[40.08,48.87],[40.04,48.92],[39.99,48.87],[39.83,48.89],[39.75,48.99],[39.66,49.0],[39.69,49.05],[39.94,49.06],[40.03,49.18],[40.22,49.25],[40.19,49.35],[40.03,49.45],[40.04,49.52],[40.17,49.57],[40.14,49.62],[39.81,49.56],[39.66,49.62],[39.61,49.73],[39.29,49.76],[39.18,49.89],[38.93,49.8],[38.9,49.87],[38.69,49.93],[38.69,50.01],[38.65,49.96],[38.49,49.96],[38.35,50.01],[38.33,50.09],[38.18,50.08],[38.22,49.98],[38.05,49.92],[38.09,49.85],[38.02,49.84],[38.05,49.78],[37.95,49.73],[38.05,49.66],[37.84,49.51],[37.88,49.31],[37.96,49.28]],"w":0,"city":0,"k":1},{"n":"doniecki","c":[37.68,47.96],"p":[[36.74,48.63],[36.9,48.54],[36.83,48.48],[36.81,48.35],[36.91,48.31],[36.94,48.19],[36.87,48.18],[36.9,48.08],[36.85,48.03],[36.58,48.08],[36.59,47.96],[36.64,47.92],[36.54,47.91],[36.6,47.85],[36.59,47.79],[36.67,47.79],[36.71,47.68],[36.79,47.68],[36.72,47.66],[36.75,47.61],[36.83,47.62],[36.89,47.54],[36.94,47.58],[37.16,47.45],[37.25,47.47],[37.2,47.36],[36.93,47.32],[36.96,47.2],[36.85,47.2],[37.0,47.13],[36.99,47.08],[37.12,47.04],[37.09,47.01],[37.14,46.98],[37.02,46.93],[37.2,46.7],[37.4,46.7],[37.62,46.83],[38.14,46.86],[38.34,46.98],[38.23,47.12],[38.23,47.23],[38.33,47.27],[38.34,47.31],[38.22,47.31],[38.3,47.39],[38.31,47.58],[38.62,47.64],[38.67,47.7],[38.77,47.69],[38.84,47.87],[39.07,47.87],[39.04,48.01],[38.83,48.03],[38.82,48.12],[38.6,48.17],[38.57,48.27],[38.43,48.28],[38.5,48.37],[38.43,48.45],[38.29,48.48],[38.32,48.51],[38.23,48.63],[38.31,48.68],[38.26,48.75],[38.31,48.83],[38.22,48.84],[38.23,48.94],[38.01,48.95],[38.1,48.99],[38.05,49.06],[38.08,49.15],[37.89,49.16],[37.93,49.22],[37.57,49.23],[37.5,49.18],[37.58,49.13],[37.38,49.05],[37.29,48.97],[37.33,48.92],[37.19,48.88],[37.19,48.81],[37.1,48.85],[36.99,48.79],[37.04,48.75],[36.72,48.81]],"w":0,"city":0,"k":2},{"n":"zaporoski","c":[35.77,47.17],"p":[[35.47,46.15],[35.84,46.41],[35.99,46.32],[36.16,46.3],[36.5,46.53],[36.76,46.46],[36.96,46.52],[37.02,46.64],[37.17,46.71],[37.02,46.93],[37.14,46.98],[37.1,47.06],[36.99,47.08],[37.0,47.13],[36.85,47.2],[36.96,47.2],[36.93,47.32],[37.2,47.36],[37.25,47.47],[37.16,47.45],[36.94,47.58],[36.89,47.54],[36.83,47.62],[36.75,47.61],[36.72,47.66],[36.79,47.68],[36.71,47.68],[36.67,47.79],[36.59,47.79],[36.6,47.85],[36.07,47.85],[36.12,47.93],[36.05,47.97],[36.05,48.06],[35.98,48.04],[35.97,48.09],[35.82,48.07],[35.7,48.14],[35.52,48.07],[35.3,48.14],[34.93,48.09],[34.86,48.13],[34.85,48.01],[34.92,47.93],[34.8,47.92],[34.9,47.85],[34.89,47.76],[34.96,47.77],[34.91,47.67],[34.96,47.54],[34.57,47.56],[34.14,47.48],[34.24,47.43],[34.31,47.27],[34.52,47.34],[34.48,47.31],[34.53,47.25],[34.49,47.24],[34.57,47.02],[34.8,46.88],[34.75,46.76],[34.63,46.72],[34.75,46.68],[34.72,46.58],[35.05,46.48],[35.07,46.3],[35.28,46.26]],"w":0,"city":0,"k":1},{"n":"lwowski","c":[23.91,49.72],"p":[[24.1,50.64],[24.0,50.41],[23.73,50.39],[23.28,50.1],[22.64,49.53],[22.75,49.36],[22.71,49.17],[22.89,49.09],[22.87,49.04],[22.92,48.97],[22.87,48.94],[22.98,48.84],[23.1,48.86],[23.2,48.76],[23.55,48.73],[23.61,48.88],[23.57,48.97],[23.69,49.1],[24.43,49.17],[24.45,49.23],[24.3,49.3],[24.43,49.37],[24.36,49.43],[24.43,49.54],[24.72,49.5],[24.72,49.57],[24.94,49.61],[25.02,49.74],[25.11,49.74],[25.08,49.83],[25.29,49.83],[25.43,49.94],[25.2,50.13],[25.17,50.21],[25.2,50.28],[25.05,50.3],[25.06,50.34],[24.94,50.39],[24.94,50.35],[24.71,50.34],[24.6,50.41],[24.53,50.55]],"w":1,"city":0,"k":2},{"n":"iwanofrankiwski","c":[24.63,48.7],"p":[[23.55,48.73],[23.93,48.55],[23.93,48.46],[24.12,48.53],[24.18,48.37],[24.31,48.4],[24.48,48.28],[24.55,48.22],[24.5,48.15],[24.63,48.05],[24.56,47.97],[24.71,47.84],[24.83,47.82],[24.89,47.72],[25.0,47.85],[24.91,48.03],[25.14,48.18],[25.11,48.23],[25.36,48.39],[25.62,48.38],[25.59,48.63],[25.65,48.71],[25.45,48.87],[25.21,48.85],[25.23,48.93],[25.14,48.87],[25.12,48.99],[24.97,48.99],[24.9,49.05],[24.99,49.07],[24.99,49.12],[24.86,49.16],[24.93,49.24],[24.84,49.26],[24.83,49.39],[24.78,49.38],[24.72,49.5],[24.49,49.55],[24.36,49.43],[24.43,49.38],[24.38,49.31],[24.3,49.3],[24.45,49.23],[24.43,49.17],[23.7,49.1],[23.57,48.97],[23.61,48.88]],"w":1,"city":0,"k":0},{"n":"zakarpacki","c":[23.29,48.4],"p":[[22.89,49.01],[22.55,49.08],[22.55,49.01],[22.38,48.87],[22.34,48.68],[22.17,48.59],[22.14,48.41],[22.27,48.41],[22.38,48.23],[22.49,48.25],[22.57,48.2],[22.59,48.11],[22.82,48.12],[22.88,48.05],[22.84,47.98],[22.9,47.95],[22.95,47.97],[22.93,48.02],[23.09,48.01],[23.17,48.12],[23.45,47.98],[23.53,48.02],[24.22,47.9],[24.55,47.96],[24.63,48.05],[24.5,48.16],[24.54,48.22],[24.35,48.38],[24.15,48.39],[24.12,48.53],[23.93,48.46],[23.93,48.55],[23.62,48.71],[23.2,48.76],[23.1,48.86],[22.98,48.84],[22.87,48.94],[22.92,48.97]],"w":1,"city":0,"k":1},{"n":"tarnopolski","c":[25.65,49.41],"p":[[25.35,50.0],[25.43,49.94],[25.38,49.87],[25.08,49.83],[25.11,49.75],[25.02,49.74],[24.95,49.62],[24.72,49.57],[24.78,49.38],[24.86,49.35],[24.83,49.29],[24.93,49.24],[24.86,49.16],[24.99,49.12],[24.99,49.07],[24.91,49.05],[24.97,48.99],[25.12,48.99],[25.14,48.87],[25.23,48.93],[25.21,48.85],[25.45,48.87],[25.64,48.75],[25.62,48.68],[25.74,48.63],[25.78,48.68],[25.92,48.59],[26.05,48.65],[26.09,48.54],[26.12,48.62],[26.17,48.53],[26.44,48.54],[26.36,48.54],[26.31,48.66],[26.22,48.69],[26.21,48.8],[26.26,48.82],[26.18,48.92],[26.18,49.2],[26.26,49.29],[26.14,49.51],[26.27,49.66],[26.19,49.71],[26.24,49.75],[26.2,49.87],[26.13,49.9],[26.23,50.05],[26.2,50.1],[26.27,50.1],[26.18,50.2],[26.22,50.27],[25.48,50.17],[25.45,50.12],[25.49,50.1]],"w":1,"city":0,"k":3},{"n":"czerniowiecki","c":[25.98,48.27],"p":[[24.92,47.73],[25.11,47.75],[25.31,47.91],[26.18,47.99],[26.33,48.18],[26.62,48.24],[26.68,48.36],[26.82,48.3],[26.82,48.34],[26.72,48.41],[26.87,48.42],[27.0,48.36],[27.05,48.38],[27.01,48.43],[27.08,48.43],[27.12,48.38],[27.29,48.37],[27.32,48.44],[27.45,48.41],[27.53,48.47],[27.36,48.63],[27.25,48.63],[27.25,48.57],[26.99,48.59],[26.88,48.54],[26.8,48.61],[26.78,48.55],[26.73,48.59],[26.73,48.53],[26.62,48.55],[26.71,48.5],[26.61,48.51],[26.6,48.45],[26.48,48.55],[26.17,48.53],[26.12,48.62],[26.09,48.54],[26.05,48.65],[25.91,48.59],[25.8,48.67],[25.74,48.63],[25.63,48.67],[25.59,48.63],[25.62,48.38],[25.31,48.37],[24.91,48.03],[25.0,47.85]],"w":1,"city":0,"k":1},{"n":"odeski","c":[29.93,46.58],"p":[[31.16,46.41],[31.18,46.77],[31.02,46.96],[31.29,47.02],[31.27,47.17],[31.11,47.16],[31.17,47.27],[30.91,47.28],[30.85,47.44],[30.88,47.54],[30.74,47.58],[30.79,47.65],[30.67,47.6],[30.42,47.63],[30.39,47.75],[30.44,47.8],[30.33,47.81],[30.21,48.07],[30.36,48.11],[30.07,48.15],[29.93,48.23],[29.89,48.18],[29.65,48.2],[29.66,48.11],[29.57,48.1],[29.28,48.09],[29.2,48.12],[29.25,48.15],[29.14,48.14],[29.08,48.19],[29.03,48.13],[28.95,48.16],[28.93,48.09],[28.83,48.07],[28.93,47.96],[29.07,47.94],[29.18,47.99],[29.2,47.88],[29.28,47.89],[29.2,47.82],[29.28,47.8],[29.2,47.72],[29.23,47.64],[29.12,47.55],[29.19,47.51],[29.16,47.46],[29.19,47.43],[29.24,47.46],[29.24,47.42],[29.32,47.45],[29.43,47.29],[29.57,47.37],[29.58,47.14],[29.49,47.13],[29.53,47.08],[29.61,47.1],[29.56,46.96],[29.72,46.93],[29.75,46.86],[29.88,46.89],[29.91,46.82],[29.97,46.83],[29.95,46.56],[29.88,46.55],[30.16,46.41],[29.94,46.4],[29.89,46.35],[29.74,46.47],[29.66,46.44],[29.68,46.36],[29.6,46.35],[29.45,46.5],[29.4,46.43],[29.35,46.5],[29.32,46.41],[29.24,46.38],[29.24,46.56],[28.98,46.49],[29.03,46.46],[28.93,46.46],[29.0,46.32],[28.95,46.26],[29.07,46.2],[28.95,46.09],[29.01,46.05],[28.98,46.0],[28.78,45.97],[28.79,45.83],[28.52,45.74],[28.48,45.68],[28.54,45.58],[28.49,45.57],[28.52,45.5],[28.3,45.55],[28.21,45.47],[28.35,45.32],[28.71,45.22],[28.79,45.24],[28.75,45.28],[28.8,45.33],[28.94,45.28],[29.24,45.43],[29.43,45.44],[29.65,45.34],[29.69,45.19],[29.95,45.17],[30.13,45.06],[30.31,45.07],[30.47,45.18],[30.47,45.33],[30.31,45.44],[30.07,45.43],[30.07,45.51],[30.43,45.72],[30.67,45.96],[30.92,46.13],[31.05,46.38]],"w":0,"city":0,"k":1},{"n":"mikołajowski","c":[31.77,47.39],"p":[[33.09,47.58],[32.96,47.59],[33.01,47.62],[32.97,47.72],[33.07,47.74],[33.09,47.89],[33.0,47.91],[32.99,48.05],[32.87,48.03],[32.89,47.99],[32.69,47.98],[32.75,47.93],[32.65,47.92],[32.66,47.82],[32.25,47.82],[32.23,47.76],[32.14,47.75],[32.05,47.82],[31.84,47.78],[31.88,47.9],[31.84,47.96],[31.75,47.94],[31.77,48.1],[31.58,48.13],[31.49,48.05],[31.49,48.13],[31.24,48.12],[31.14,48.23],[30.98,48.22],[30.9,48.16],[30.37,48.18],[30.31,48.14],[30.36,48.1],[30.21,48.07],[30.33,47.81],[30.44,47.8],[30.39,47.75],[30.42,47.63],[30.67,47.6],[30.79,47.65],[30.74,47.58],[30.88,47.54],[30.85,47.44],[30.91,47.28],[31.17,47.27],[31.11,47.16],[31.27,47.17],[31.29,47.02],[31.02,46.96],[31.18,46.77],[31.16,46.41],[31.83,46.35],[31.81,46.48],[31.94,46.65],[32.09,46.68],[32.06,46.74],[32.22,46.77],[32.23,46.85],[32.34,46.8],[32.53,46.82],[32.54,46.88],[32.7,46.82],[32.95,46.86],[32.84,46.9],[32.98,46.93],[32.95,47.0],[33.02,46.97],[33.07,47.02],[32.92,47.09],[32.92,47.14],[33.18,47.24],[33.11,47.28],[33.12,47.39],[33.04,47.39],[33.07,47.47],[33.07,47.41],[33.14,47.42],[33.14,47.54],[33.09,47.53]],"w":0,"city":0,"k":2},{"n":"Krym","c":[34.43,45.27],"p":[[32.77,45.83],[32.3,45.57],[32.2,45.42],[32.24,45.28],[32.36,45.17],[32.57,45.12],[32.83,45.15],[33.01,45.01],[33.68,44.79],[33.62,44.71],[33.78,44.69],[33.72,44.62],[33.83,44.57],[33.93,44.42],[33.76,44.39],[33.7,44.19],[34.24,44.23],[34.54,44.4],[34.74,44.58],[35.18,44.6],[35.63,44.85],[35.82,44.79],[36.26,44.82],[36.61,44.94],[36.53,45.2],[36.66,45.36],[36.67,45.63],[36.34,45.67],[35.98,45.62],[35.79,45.64],[35.65,45.59],[35.57,45.49],[35.23,45.79],[34.96,45.76],[34.8,45.81],[34.8,45.9],[34.63,45.99],[34.48,45.94],[34.34,46.06],[33.65,46.23],[33.54,46.01]],"w":0,"city":0,"k":1},{"n":"winnicki","c":[28.69,48.92],"p":[[27.82,49.73],[27.76,49.7],[27.81,49.64],[27.76,49.58],[27.79,49.53],[27.74,49.5],[27.79,49.49],[27.75,49.44],[27.85,49.43],[27.81,49.37],[27.9,49.19],[27.51,49.13],[27.5,49.07],[27.38,49.01],[27.43,48.8],[27.37,48.63],[27.45,48.6],[27.52,48.47],[27.79,48.45],[27.95,48.33],[28.07,48.32],[28.09,48.23],[28.35,48.25],[28.31,48.14],[28.43,48.17],[28.49,48.07],[28.5,48.15],[28.58,48.18],[28.83,48.13],[28.87,48.07],[28.95,48.16],[29.03,48.13],[29.06,48.19],[29.25,48.15],[29.2,48.12],[29.28,48.09],[29.66,48.11],[29.65,48.2],[29.78,48.21],[29.79,48.37],[30.02,48.52],[29.95,48.6],[29.99,48.64],[29.86,48.7],[29.87,48.76],[29.77,48.79],[29.74,48.91],[29.65,48.94],[29.7,49.0],[29.61,49.06],[29.73,49.12],[29.74,49.23],[29.64,49.25],[29.5,49.37],[29.59,49.44],[29.5,49.59],[29.52,49.65],[28.99,49.6],[28.95,49.68],[29.0,49.74],[28.87,49.89],[28.73,49.8],[28.24,49.81]],"w":0,"city":0,"k":2},{"n":"chmielnicki","c":[26.93,49.51],"p":[[26.22,50.18],[26.27,50.1],[26.2,50.1],[26.23,50.05],[26.13,49.9],[26.2,49.87],[26.24,49.75],[26.19,49.71],[26.27,49.66],[26.14,49.51],[26.26,49.29],[26.18,49.2],[26.22,49.01],[26.18,48.97],[26.26,48.82],[26.21,48.8],[26.22,48.69],[26.31,48.66],[26.36,48.54],[26.49,48.55],[26.6,48.45],[26.61,48.51],[26.71,48.5],[26.62,48.55],[26.73,48.53],[26.73,48.59],[26.78,48.55],[26.8,48.61],[26.88,48.54],[27.34,48.61],[27.41,48.7],[27.42,49.05],[27.6,49.16],[27.9,49.19],[27.81,49.37],[27.85,49.43],[27.75,49.44],[27.79,49.49],[27.74,49.5],[27.81,49.61],[27.76,49.7],[27.84,49.73],[27.55,49.9],[27.55,50.01],[27.68,50.04],[27.61,50.09],[27.66,50.19],[27.62,50.17],[27.6,50.26],[27.52,50.23],[27.32,50.33],[27.25,50.39],[27.3,50.49],[27.2,50.56],[27.12,50.59],[26.98,50.52],[26.83,50.52],[26.5,50.26]],"w":1,"city":0,"k":0},{"n":"czerkaski","c":[31.35,49.26],"p":[[29.74,49.23],[29.73,49.12],[29.61,49.06],[29.7,49.0],[29.65,48.94],[29.74,48.91],[29.77,48.79],[29.87,48.76],[29.86,48.7],[29.99,48.64],[29.95,48.6],[30.02,48.52],[29.96,48.47],[30.11,48.45],[30.16,48.5],[30.39,48.53],[30.4,48.57],[30.57,48.57],[30.53,48.63],[30.6,48.66],[30.58,48.72],[30.7,48.77],[31.38,48.73],[31.56,48.83],[31.58,48.91],[31.81,48.95],[31.92,48.88],[32.03,48.93],[32.15,48.91],[32.13,48.97],[32.22,48.99],[32.27,49.08],[32.44,49.05],[32.55,48.94],[32.87,48.99],[32.81,49.08],[32.9,49.09],[32.76,49.17],[32.86,49.24],[32.61,49.25],[32.47,49.33],[32.51,49.41],[32.74,49.35],[32.65,49.44],[32.76,49.58],[32.37,49.87],[32.43,49.89],[32.43,49.96],[32.26,50.08],[32.3,50.14],[32.12,50.23],[31.93,50.16],[31.98,50.13],[31.91,50.06],[31.98,50.04],[31.9,50.02],[31.9,49.94],[31.81,49.97],[31.71,49.85],[31.58,49.91],[31.5,49.84],[31.43,49.9],[31.44,49.98],[31.3,49.99],[31.29,49.95],[31.38,49.91],[31.21,49.85],[31.22,49.69],[31.14,49.6],[31.15,49.56],[30.92,49.42],[30.91,49.36],[30.52,49.33],[30.47,49.37],[30.38,49.24],[30.19,49.28],[30.2,49.33],[30.14,49.33],[30.11,49.27],[30.03,49.33],[29.95,49.31],[29.88,49.19],[29.76,49.18]],"w":0,"city":0,"k":0},{"n":"połtawski","c":[33.78,49.73],"p":[[32.12,50.23],[32.3,50.14],[32.26,50.08],[32.43,49.96],[32.43,49.89],[32.37,49.87],[32.76,49.58],[32.65,49.44],[32.74,49.35],[32.51,49.41],[32.47,49.33],[32.61,49.25],[32.98,49.24],[33.2,49.07],[33.24,49.08],[33.24,49.17],[33.3,49.12],[33.26,49.09],[33.32,49.06],[33.32,48.95],[33.58,48.91],[33.67,48.98],[34.29,48.72],[34.34,48.78],[34.3,48.82],[34.35,48.85],[34.3,48.9],[34.33,49.0],[34.42,49.05],[34.4,49.09],[34.56,49.06],[34.59,49.11],[34.85,49.19],[35.02,49.15],[34.98,49.25],[35.02,49.33],[35.27,49.28],[35.38,49.4],[35.33,49.5],[35.49,49.51],[35.4,49.56],[35.49,49.57],[35.43,49.67],[35.24,49.69],[35.22,49.83],[34.86,49.95],[34.96,50.07],[34.94,50.15],[34.55,50.13],[34.57,50.23],[34.25,50.44],[34.22,50.53],[34.1,50.48],[33.95,50.55],[33.73,50.46],[33.43,50.48],[33.27,50.55],[33.22,50.5],[33.02,50.5],[32.79,50.35],[32.53,50.35],[32.49,50.4],[32.33,50.43],[32.27,50.35],[32.14,50.35],[32.09,50.28]],"w":0,"city":0,"k":2},{"n":"dniepropetrowski","c":[34.84,48.3],"p":[[34.14,47.48],[34.57,47.56],[34.96,47.54],[34.91,47.67],[34.96,47.77],[34.89,47.76],[34.9,47.85],[34.8,47.92],[34.92,47.93],[34.85,48.01],[34.86,48.13],[34.99,48.09],[35.3,48.14],[35.52,48.07],[35.7,48.14],[35.82,48.07],[36.05,48.06],[36.05,47.97],[36.13,47.89],[36.05,47.88],[36.07,47.85],[36.58,47.85],[36.54,47.91],[36.64,47.92],[36.59,47.96],[36.58,48.08],[36.85,48.03],[36.9,48.08],[36.91,48.31],[36.81,48.35],[36.83,48.48],[36.9,48.54],[36.48,48.66],[36.3,48.53],[36.28,48.66],[36.14,48.72],[36.16,48.78],[36.06,48.81],[36.01,48.89],[36.04,48.92],[35.94,49.0],[35.81,48.93],[35.49,48.97],[35.19,49.11],[35.23,49.13],[35.19,49.16],[35.01,49.15],[34.95,49.19],[34.62,49.12],[34.56,49.06],[34.4,49.09],[34.42,49.05],[34.33,49.0],[34.3,48.9],[34.35,48.85],[34.3,48.82],[34.34,48.78],[34.29,48.72],[33.89,48.9],[33.85,48.77],[33.58,48.8],[33.62,48.73],[33.8,48.66],[33.47,48.54],[33.46,48.35],[33.55,48.23],[33.29,48.15],[33.29,48.1],[33.21,48.17],[33.23,48.13],[33.18,48.12],[33.22,48.09],[32.99,47.98],[33.0,47.91],[33.09,47.89],[33.07,47.74],[32.97,47.72],[33.01,47.62],[32.96,47.59],[33.23,47.58],[33.22,47.53],[33.29,47.54],[33.31,47.48],[33.58,47.6],[33.57,47.52],[33.64,47.48],[33.93,47.52],[33.95,47.46]],"w":0,"city":0,"k":3},{"n":"kirowohradzki","c":[32.08,48.47],"p":[[30.31,48.14],[30.72,48.2],[30.9,48.16],[30.98,48.22],[31.14,48.23],[31.24,48.12],[31.49,48.13],[31.49,48.05],[31.58,48.13],[31.77,48.1],[31.75,47.94],[31.84,47.96],[31.88,47.9],[31.84,47.78],[32.05,47.82],[32.14,47.75],[32.23,47.76],[32.25,47.82],[32.66,47.82],[32.65,47.92],[32.75,47.93],[32.69,47.98],[32.89,47.99],[32.87,48.03],[32.99,48.05],[33.02,47.98],[33.04,48.03],[33.22,48.09],[33.18,48.12],[33.23,48.13],[33.21,48.17],[33.29,48.1],[33.29,48.15],[33.55,48.23],[33.46,48.35],[33.47,48.54],[33.74,48.62],[33.81,48.68],[33.62,48.73],[33.58,48.8],[33.85,48.77],[33.89,48.9],[33.67,48.98],[33.58,48.91],[33.32,48.95],[33.32,49.06],[33.26,49.09],[33.3,49.12],[33.24,49.17],[33.24,49.08],[33.2,49.07],[33.1,49.19],[32.86,49.24],[32.76,49.17],[32.89,49.13],[32.81,49.08],[32.85,48.98],[32.52,48.94],[32.44,49.05],[32.28,49.08],[32.22,48.99],[32.13,48.97],[32.15,48.91],[32.03,48.93],[31.92,48.88],[31.81,48.95],[31.58,48.91],[31.56,48.83],[31.38,48.73],[30.7,48.77],[30.58,48.72],[30.6,48.66],[30.53,48.63],[30.57,48.57],[30.4,48.57],[30.39,48.53],[30.16,48.5],[30.11,48.45],[29.97,48.47],[29.75,48.3],[29.79,48.2],[29.99,48.23],[30.07,48.15]],"w":0,"city":0,"k":4}],"cty":{"UKR":[[[38.21,47.09],[37.54,47.07],[37.34,46.92],[37.05,46.88],[36.79,46.71],[36.56,46.76],[36.28,46.66],[35.83,46.62],[35.4,46.38],[35.2,46.17],[35.01,46.11],[35.28,46.28],[35.29,46.37],[35.23,46.44],[35.06,46.27],[34.85,46.19],[34.86,45.99],[35.02,45.7],[35.26,45.45],[35.46,45.32],[35.83,45.4],[36.01,45.37],[36.17,45.45],[36.58,45.39],[36.45,45.23],[36.39,45.07],[35.87,45.01],[35.68,45.1],[35.47,45.1],[35.36,44.98],[35.15,44.9],[35.09,44.8],[34.72,44.81],[34.47,44.72],[34.28,44.54],[34.07,44.42],[33.76,44.4],[33.45,44.55],[33.61,44.91],[33.56,45.1],[33.39,45.19],[33.19,45.19],[32.92,45.35],[32.61,45.33],[32.51,45.4],[33.14,45.75],[33.28,45.77],[33.66,45.95],[33.59,46.1],[33.43,46.06],[33.2,46.18],[32.48,46.08],[32.04,46.26],[31.83,46.28],[31.78,46.32],[31.99,46.36],[32.01,46.43],[31.71,46.47],[31.55,46.55],[32.36,46.47],[32.58,46.62],[32.35,46.56],[32.04,46.64],[31.94,46.78],[31.94,46.98],[31.76,47.21],[31.91,46.93],[31.87,46.65],[31.53,46.66],[31.56,46.78],[31.4,46.63],[30.8,46.55],[30.66,46.27],[30.22,45.87],[29.82,45.73],[29.63,45.72],[29.6,45.6],[29.67,45.54],[29.73,45.34],[29.71,45.26],[29.57,45.37],[29.4,45.42],[28.89,45.29],[28.78,45.31],[28.76,45.23],[28.45,45.29],[28.21,45.45],[28.5,45.52],[28.49,45.67],[28.73,45.85],[28.74,45.94],[28.95,46.05],[29.01,46.18],[28.93,46.36],[28.96,46.46],[29.19,46.52],[29.2,46.38],[29.3,46.47],[29.61,46.4],[29.71,46.45],[29.84,46.35],[30.08,46.38],[30.13,46.42],[29.92,46.54],[29.94,46.72],[29.88,46.83],[29.57,46.96],[29.51,47.13],[29.54,47.27],[29.13,47.49],[29.21,47.77],[29.13,47.96],[28.92,47.95],[28.77,48.12],[28.53,48.15],[28.46,48.09],[28.42,48.15],[28.34,48.14],[28.35,48.21],[28.29,48.24],[28.09,48.26],[27.82,48.42],[27.55,48.48],[27.23,48.37],[26.85,48.39],[26.62,48.26],[26.31,48.2],[26.16,47.99],[25.46,47.91],[25.17,47.82],[25.07,47.75],[24.89,47.72],[24.58,47.93],[24.48,47.95],[24.18,47.91],[23.67,47.99],[23.41,47.99],[23.14,48.09],[23.05,48.01],[22.88,47.95],[22.77,48.11],[22.58,48.13],[22.52,48.21],[22.35,48.26],[22.25,48.41],[22.13,48.41],[22.14,48.57],[22.3,48.69],[22.54,49.07],[22.84,49.04],[22.85,49.08],[22.71,49.17],[22.73,49.3],[22.65,49.54],[22.71,49.61],[23.04,49.9],[23.71,50.38],[23.97,50.41],[24.09,50.53],[24.09,50.62],[23.98,50.79],[24.1,50.87],[23.99,50.94],[23.66,51.31],[23.68,51.39],[23.61,51.52],[23.61,51.61],[23.79,51.64],[23.98,51.59],[24.36,51.87],[25.27,51.94],[25.93,51.91],[27.14,51.75],[27.3,51.6],[27.69,51.57],[27.7,51.48],[27.86,51.59],[28.01,51.56],[28.18,51.61],[28.6,51.54],[28.65,51.46],[28.73,51.43],[28.85,51.54],[29.1,51.63],[29.35,51.38],[30.16,51.48],[30.31,51.4],[30.33,51.33],[30.54,51.27],[30.63,51.36],[30.53,51.6],[30.58,51.69],[30.76,51.9],[30.98,52.05],[31.57,52.11],[32.12,52.05],[32.28,52.11],[32.36,52.27],[32.44,52.31],[32.81,52.25],[33.15,52.34],[33.74,52.34],[33.92,52.25],[34.11,51.98],[34.4,51.78],[34.38,51.72],[34.12,51.68],[34.2,51.55],[34.23,51.36],[34.27,51.34],[34.21,51.26],[34.71,51.17],[35.06,51.2],[35.16,51.06],[35.31,51.04],[35.31,50.95],[35.44,50.73],[35.39,50.61],[35.41,50.54],[35.59,50.37],[35.67,50.35],[35.89,50.44],[36.12,50.41],[36.31,50.28],[36.5,50.28],[36.62,50.21],[36.76,50.29],[37.42,50.41],[37.58,50.29],[37.7,50.11],[38.05,49.92],[38.15,49.94],[38.18,50.03],[38.26,50.05],[38.45,49.96],[38.65,49.95],[38.92,49.82],[39.17,49.86],[39.3,49.74],[39.46,49.73],[39.78,49.57],[40.08,49.58],[40.06,49.43],[40.13,49.37],[40.11,49.25],[39.89,49.06],[39.69,49.01],[39.75,48.91],[40.0,48.82],[39.79,48.81],[39.7,48.74],[39.64,48.59],[39.84,48.54],[39.89,48.36],[39.85,48.3],[39.96,48.27],[39.78,47.96],[39.78,47.89],[39.66,47.84],[38.9,47.86],[38.82,47.84],[38.64,47.67],[38.37,47.61],[38.29,47.56],[38.2,47.32],[38.28,47.28],[38.2,47.18]]],"SVK":[[[22.54,49.07],[22.14,48.57],[22.11,48.39],[21.72,48.35],[21.45,48.55],[20.49,48.53],[20.33,48.3],[19.95,48.15],[19.63,48.22],[19.47,48.11],[18.79,48.0],[18.72,47.79],[17.64,47.81],[17.09,48.04],[16.87,48.39],[17.14,48.84],[17.76,48.89],[18.09,49.07],[18.16,49.26],[18.6,49.49],[18.94,49.5],[18.97,49.4],[19.15,49.4],[19.44,49.6],[19.63,49.41],[19.77,49.37],[19.8,49.19],[20.06,49.18],[20.16,49.32],[20.36,49.39],[20.95,49.32],[21.08,49.42],[21.35,49.43],[21.89,49.34],[22.02,49.21]]],"RUS":[[[49.5,57.5],[49.5,51.08],[49.32,50.85],[48.81,50.6],[48.63,50.61],[48.84,50.01],[48.76,49.93],[48.43,49.83],[47.71,50.38],[47.38,50.32],[47.3,50.06],[46.89,49.7],[46.8,49.37],[47.03,49.15],[46.61,48.57],[46.66,48.41],[47.06,48.23],[47.09,47.95],[47.29,47.74],[48.17,47.71],[48.96,46.77],[48.56,46.76],[48.54,46.61],[49.25,46.29],[48.68,46.09],[48.73,45.9],[48.49,45.93],[47.63,45.58],[47.46,45.68],[47.51,45.49],[47.08,44.82],[47.0,44.88],[46.72,44.56],[46.75,44.42],[47.31,44.1],[47.46,43.56],[47.65,43.88],[47.46,43.04],[48.57,41.84],[48.39,41.6],[47.79,41.2],[47.32,41.28],[46.75,41.81],[46.57,41.8],[45.64,42.21],[45.73,42.48],[45.66,42.52],[45.34,42.53],[44.87,42.76],[44.77,42.62],[44.51,42.75],[43.83,42.57],[43.74,42.62],[43.78,42.75],[42.76,43.17],[41.58,43.22],[40.65,43.53],[40.15,43.57],[39.98,43.42],[38.72,44.29],[38.18,44.42],[37.85,44.7],[37.5,44.7],[37.2,44.97],[36.65,45.13],[36.94,45.29],[36.72,45.37],[36.79,45.41],[37.21,45.27],[37.65,45.38],[37.61,45.56],[37.93,46.0],[38.01,46.05],[38.08,45.93],[38.18,46.09],[38.49,46.09],[37.91,46.41],[37.77,46.64],[38.5,46.66],[38.44,46.81],[39.27,47.04],[39.2,47.27],[38.67,47.14],[38.55,47.15],[38.76,47.26],[38.58,47.24],[38.21,47.09],[38.28,47.28],[38.2,47.32],[38.29,47.56],[38.82,47.84],[39.78,47.89],[39.96,48.27],[39.85,48.3],[39.84,48.54],[39.64,48.59],[39.79,48.81],[40.0,48.82],[39.69,49.01],[40.11,49.25],[40.08,49.58],[39.78,49.57],[39.17,49.86],[38.92,49.82],[38.26,50.05],[38.05,49.92],[37.42,50.41],[36.62,50.21],[36.12,50.41],[35.59,50.37],[35.41,50.54],[35.31,51.04],[35.06,51.2],[34.21,51.26],[34.27,51.34],[34.12,51.68],[34.4,51.78],[33.74,52.34],[32.44,52.31],[32.12,52.05],[31.76,52.1],[31.58,52.31],[31.56,52.76],[31.26,53.02],[31.42,53.2],[32.14,53.09],[32.7,53.34],[32.69,53.45],[32.47,53.55],[32.45,53.69],[31.75,53.81],[31.83,54.03],[31.4,54.2],[31.07,54.49],[31.15,54.63],[30.8,54.78],[30.98,55.05],[30.81,55.28],[30.88,55.6],[30.23,55.85],[29.48,55.68],[29.35,55.78],[29.38,55.94],[29.03,56.02],[28.79,55.94],[28.56,56.09],[28.15,56.14],[28.1,56.55],[27.85,56.85],[27.64,56.85],[27.83,57.29],[27.51,57.5]]],"ROU":[[[28.21,45.45],[28.45,45.29],[28.76,45.23],[28.78,45.31],[29.4,45.42],[29.71,45.26],[29.56,44.84],[29.05,44.76],[29.1,44.98],[28.89,44.92],[28.93,44.81],[28.81,44.57],[28.89,44.57],[28.65,44.3],[28.59,43.74],[28.22,43.77],[28.05,43.82],[27.88,43.99],[27.43,44.02],[27.09,44.17],[26.22,44.01],[25.5,43.67],[23.22,43.87],[22.92,43.83],[22.87,43.95],[23.03,44.08],[22.49,44.44],[22.72,44.61],[22.5,44.71],[22.09,44.54],[21.36,44.83],[21.53,44.9],[21.35,45.01],[21.49,45.15],[20.79,45.47],[20.77,45.75],[20.24,46.11],[21.12,46.28],[22.0,47.4],[22.0,47.51],[22.29,47.73],[22.61,47.77],[23.14,48.09],[24.18,47.91],[24.58,47.93],[24.89,47.72],[25.46,47.91],[26.16,47.99],[26.31,48.2],[26.71,48.26],[26.98,48.16],[27.61,47.34],[28.07,46.98],[28.24,46.64],[28.1,45.97],[28.16,45.65],[28.07,45.6]]],"POL":[[[23.61,51.52],[23.66,51.31],[24.1,50.87],[23.98,50.79],[24.09,50.53],[23.97,50.41],[23.71,50.38],[22.71,49.61],[22.65,49.54],[22.71,49.17],[22.85,49.08],[22.81,49.02],[22.02,49.21],[21.89,49.34],[21.64,49.41],[21.08,49.42],[20.87,49.31],[20.36,49.39],[20.16,49.32],[20.06,49.18],[19.76,49.2],[19.77,49.37],[19.63,49.41],[19.44,49.6],[19.15,49.4],[18.97,49.4],[18.94,49.5],[18.83,49.51],[18.81,49.61],[18.59,49.76],[18.56,49.88],[18.03,50.04],[17.83,49.98],[17.63,50.12],[17.59,50.16],[17.74,50.23],[17.7,50.31],[17.42,50.25],[16.88,50.43],[16.99,50.24],[16.64,50.1],[16.21,50.42],[16.42,50.57],[16.28,50.66],[16.01,50.61],[15.35,50.81],[15.26,50.96],[14.99,51.01],[14.98,50.89],[14.81,50.86],[15.02,51.25],[14.91,51.46],[14.72,51.52],[14.72,51.66],[14.6,51.83],[14.75,52.08],[14.55,52.36],[14.62,52.53],[14.13,52.88],[14.41,53.2],[14.26,53.73],[14.58,53.64],[14.56,53.82],[14.2,53.92],[16.19,54.29],[16.56,54.55],[18.09,54.84],[18.32,54.84],[18.76,54.68],[18.8,54.63],[18.44,54.74],[18.67,54.43],[18.98,54.35],[19.6,54.46],[22.89,54.39],[23.45,54.14],[23.6,53.6],[23.89,53.03],[23.9,52.7],[23.41,52.52],[23.18,52.29],[23.65,52.04],[23.54,51.71]]],"MDA":[[[26.62,48.26],[26.85,48.39],[27.23,48.37],[27.55,48.48],[27.82,48.42],[28.09,48.26],[28.29,48.24],[28.46,48.09],[28.53,48.15],[28.77,48.12],[28.92,47.95],[29.13,47.96],[29.21,47.77],[29.13,47.49],[29.54,47.27],[29.51,47.13],[29.57,46.96],[29.88,46.83],[29.94,46.72],[29.92,46.54],[30.13,46.42],[29.84,46.35],[29.71,46.45],[29.61,46.4],[29.3,46.47],[29.2,46.38],[29.19,46.52],[28.96,46.46],[28.93,46.36],[29.01,46.18],[28.95,46.05],[28.74,45.94],[28.73,45.85],[28.49,45.67],[28.5,45.52],[28.21,45.45],[28.07,45.6],[28.16,45.65],[28.1,45.97],[28.24,46.45],[28.24,46.64],[28.07,46.98],[27.61,47.34],[26.98,48.16],[26.79,48.26]]],"HUN":[[[22.13,48.41],[22.25,48.41],[22.35,48.26],[22.58,48.13],[22.77,48.11],[22.88,47.95],[22.61,47.77],[22.29,47.73],[22.0,47.51],[22.0,47.4],[21.66,47.04],[21.5,46.7],[21.32,46.61],[21.26,46.41],[21.04,46.24],[20.84,46.26],[20.61,46.13],[20.24,46.11],[19.61,46.17],[19.28,46.0],[18.67,45.91],[18.44,45.77],[17.96,45.77],[17.31,46.0],[16.87,46.34],[16.52,46.5],[16.28,46.86],[16.09,46.86],[16.45,47.01],[16.44,47.4],[16.68,47.54],[16.42,47.67],[16.59,47.75],[16.79,47.68],[17.07,47.71],[17.03,47.84],[17.15,48.01],[17.76,47.77],[18.72,47.79],[18.79,48.0],[19.47,48.11],[19.63,48.22],[19.95,48.15],[20.33,48.3],[20.49,48.53],[21.45,48.55],[21.72,48.35]]],"BLR":[[[31.76,52.1],[31.08,52.08],[30.76,51.9],[30.53,51.6],[30.63,51.36],[30.54,51.27],[30.16,51.48],[29.35,51.38],[29.1,51.63],[28.73,51.43],[28.6,51.54],[28.18,51.61],[27.86,51.59],[27.7,51.48],[27.69,51.57],[27.3,51.6],[27.14,51.75],[25.79,51.92],[24.36,51.87],[23.98,51.59],[23.71,51.64],[23.61,51.61],[23.61,51.52],[23.54,51.71],[23.65,52.04],[23.18,52.29],[23.41,52.52],[23.84,52.66],[23.92,52.77],[23.86,53.11],[23.48,53.94],[24.19,53.95],[24.32,53.89],[24.77,53.97],[24.87,54.15],[25.05,54.13],[25.46,54.29],[25.51,54.16],[25.75,54.16],[25.75,54.26],[25.55,54.33],[25.86,54.92],[26.18,55.0],[26.29,55.14],[26.6,55.13],[26.78,55.27],[26.46,55.34],[26.59,55.67],[27.05,55.83],[27.58,55.8],[27.9,56.08],[28.12,56.15],[28.28,56.06],[28.56,56.09],[28.79,55.94],[29.03,56.02],[29.38,55.94],[29.35,55.78],[29.48,55.68],[29.94,55.85],[30.23,55.85],[30.91,55.57],[30.9,55.4],[30.81,55.31],[30.98,55.05],[30.8,54.78],[31.15,54.63],[31.07,54.49],[31.4,54.2],[31.83,54.03],[31.75,53.81],[32.45,53.69],[32.47,53.55],[32.71,53.42],[32.7,53.34],[32.14,53.09],[31.42,53.2],[31.26,53.02],[31.56,52.76],[31.58,52.31]]]}};
+
+/* feed: data/daily.json z tego samego repo, dopisywany codziennie przez GitHub Action ze skryptu
+   scripts/scrape_af.py (podsumowania Sił Powietrznych z t.me/s/kpszsu). Brak pliku = wbudowane dane. */
+let DAILY=null,DATA_TO="2026-09-17",DATA_SRC="wbudowane";
+try{const r=await Promise.race([fetch("data/daily.json",{cache:"no-store"}),new Promise((_,j)=>setTimeout(()=>j(new Error("timeout")),3000))]);
+  if(r.ok){const rows=await r.json();if(Array.isArray(rows)&&rows.length>30){DAILY=rows;DATA_TO=rows[rows.length-1].d;DATA_SRC="feed";}}}catch(e){}
+const UA=GEO.cty.UKR[0];
+const NATO=new Set(["POL","SVK","HUN","ROU"]);
+const CTYN={POL:"POLSKA",BLR:"BIAŁORUŚ",RUS:"ROSJA",MDA:"MOŁDAWIA",ROU:"RUMUNIA",HUN:"WĘGRY",SVK:"SŁOWACJA"};
+const CTYL={POL:[20.2,51.7],BLR:[27.6,53.7],RUS:[40.4,52.9],MDA:[28.3,47.15],ROU:[25.4,46.2],HUN:[19.9,47.35],SVK:[19.7,48.85]};
+const SEAL=[["MORZE CZARNE",32.8,43.2],["MORZE AZOWSKIE",37.1,46.05]];
+
+const FRONT=[[37.6,50.2],[37.4,49.6],[37.8,48.9],[37.2,48.3],[36.4,47.8],[36.0,47.3],[35.0,46.9],[33.6,46.6],[32.4,46.5]];
+const OCC=FRONT.concat([[32.4,46.3],[32.8,45.2],[33.2,44.2],[41,44],[41,51.2]]);
+
+const SRC={briansk:[34.36,53.24],kursk:[36.19,51.73],millerowo:[40.40,48.92],achtarsk:[38.15,46.05],
+  krym:[34.02,45.10],morze:[31.40,43.30],tu95:[41.70,49.60]};
+const SRCN={briansk:"Briańsk",kursk:"Kursk",millerowo:"Millerowo",achtarsk:"Prim.-Achtarsk",krym:"Krym",morze:"Morze Czarne",tu95:"linia Tu-95"};
+const CITY={charkow:[36.23,49.99],dniepr:[35.04,48.46],kijow:[30.52,50.45],odesa:[30.73,46.48],mikolajow:[31.99,46.98],
+  zaporoze:[35.15,47.84],lwow:[24.03,49.84],jaworow:[23.38,49.93],luck:[25.34,50.75],tarnopol:[25.59,49.55],
+  ifrankiwsk:[24.71,48.92],uzhhorod:[22.30,48.62],czerniowce:[25.94,48.29],chmielnicki:[26.99,49.42]};
+const CITYN={charkow:"Charków",dniepr:"Dniepr",kijow:"Kijów",odesa:"Odesa",mikolajow:"Mikołajów",zaporoze:"Zaporoże",
+  lwow:"Lwów",jaworow:"Jaworów",luck:"Łuck",tarnopol:"Tarnopol",ifrankiwsk:"Iwano-Frankiwsk",uzhhorod:"Użhorod",
+  czerniowce:"Czerniowce",chmielnicki:"Chmielnicki"};
+const LABELS=[["Kijów","kijow",0],["Charków","charkow",0],["Odesa","odesa",0],["Dniepr","dniepr",0],["Zaporoże","zaporoze",0],
+  ["Lwów","lwow",1],["Łuck","luck",1],["Tarnopol","tarnopol",1],["Iw.-Frankiwsk","ifrankiwsk",1],["Użhorod","uzhhorod",1],["Czerniowce","czerniowce",1]];
+const MAIN=[["kursk","charkow"],["millerowo","dniepr"],["briansk","kijow"],["achtarsk","odesa"],["krym","mikolajow"],["millerowo","zaporoze"]];
+
+const SERIES=[];
+const push=(y,m1,m2,v,meas)=>{for(let m=m1;m<=m2;m++)SERIES.push([y,m,v,meas]);};
+push(2022,9,12,165,false);push(2023,1,12,275,false);push(2024,1,9,552,false);push(2024,10,10,2023,true);
+push(2024,11,12,1980,false);push(2025,1,7,4127,false);
+[[8,4128],[9,5643],[10,5298],[11,5447],[12,5131]].forEach(a=>push(2025,a[0],a[0],a[1],true));
+[[1,4442],[2,5059],[3,6462],[4,6583],[5,8161],[6,5749],[7,4891]].forEach(a=>push(2026,a[0],a[0],a[1],true));
+const dim=(y,m)=>new Date(Date.UTC(y,m,0)).getUTCDate();
+if(DAILY){
+  const bym={};DAILY.forEach(r=>{if(r.d<"2026-08-01")return;const k=r.d.slice(0,7);(bym[k]=bym[k]||{s:0,n:0,last:r.d});bym[k].s+=r.uav;bym[k].n++;bym[k].last=r.d;});
+  Object.keys(bym).sort().forEach(k=>{const y=+k.slice(0,4),m=+k.slice(5,7),o=bym[k],full=o.n>=dim(y,m)-1;
+    SERIES.push([y,m,o.s,true,full?dim(y,m):+o.last.slice(8,10)]);});
+}else{SERIES.push([2026,8,4453,true,31]);SERIES.push([2026,9,3123,true,17]);}
+
+const EV=[
+ {d:"2022-02-24",h:"Iwano-Frankiwsk — pierwszy dzień inwazji",t:"Rakiety w lotnisko wojskowe. Zachód Ukrainy jest atakowany od pierwszej doby, ale wyłącznie bronią lotniczą i okrętową.",west:[["tu95","ifrankiwsk",6,"m"]],n:"6",nat:{d:0,m:160}},
+ {d:"2022-03-13",h:"Jaworów, obwód lwowski",t:"Ponad 30 rakiet manewrujących w poligon 25 km od granicy z Polską. 35 zabitych, 134 rannych. Najdalej na zachód wysunięty atak wojny do tamtego momentu.",west:[["tu95","jaworow",30,"m"]],n:"30",nat:{d:0,m:30}},
+ {d:"2022-10-10",h:"Pierwsza wielka fala na sieć energetyczną",t:"84 rakiety manewrujące i 24 drony w 14 obwodów. Shahedy weszły do użycia miesiąc wcześniej, ale na zachód wciąż lecą wyłącznie rakiety.",west:[["tu95","lwow",8,"m"]],n:"8",nat:{d:24,m:84}},
+ {d:"2023-07-06",h:"Lwów — 10 Kalibrów, 7 strąconych",t:"Rakiety wystrzelone z okrętów na Morzu Czarnym, ponad 800 km od celu. Doleciały 3. Rakieta w kompleks budynków w centrum: 10 zabitych, 42 rannych, 35 uszkodzonych budynków.",west:[["morze","lwow",10,"m"]],n:"10",kill:.7,nat:{d:0,m:10}},
+ {d:"2024-03-22",h:"88 rakiet i 63 drony",t:"Pierwsza fala, w której obwody lwowski i iwano-frankiwski trafione są razem z Charkowem, Zaporożem i Odessą. Liczb per obwód na zachodzie w tym roku nie publikowano.",west:[],n:"—",nat:{d:63,m:88}},
+ {d:"2025-07-12",h:"Lwów, Łuck i Czerniowce",t:"Około 600 dronów i 26 rakiet w skali kraju; zachodnie obwody wśród najmocniej uderzonych. Drony po raz pierwszy są główną bronią sięgającą zachodu.",west:[],n:"—",nat:{d:600,m:26}},
+ {d:"2025-10-05",h:"Obwód lwowski — 163 obiekty w jedną noc",t:"Około 140 Shahedów i 23 rakiety balistyczne w jeden obwód. Największy nalot na region lwowski w całej wojnie; w skali kraju 496 dronów i 53 rakiety.",west:[["briansk","lwow",140,"d"],["krym","lwow",23,"m"]],n:"163",nat:{d:496,m:53}},
+ {d:"2025-11-19",h:"Tarnopol — 38 zabitych",t:"Ponad 470 dronów i 47 rakiet w skali kraju. Dwa bloki mieszkalne w Tarnopolu, wśród ofiar ośmioro dzieci. Najkrwawszy atak na zachodzie Ukrainy w całej wojnie.",west:[["briansk","tarnopol",40,"d"]],n:"~40",nat:{d:470,m:47}},
+ {d:"2026-03-24",h:"Lwów w biały dzień",t:"948 dronów w ciągu doby — ówczesny rekord wojny, z tego 556 w fazie dziennej. Dron uderzył w budynek w historycznym centrum Lwowa.",west:[["briansk","lwow",30,"d"]],n:"~30",nat:{d:948,m:35}},
+ {d:"2026-04-01",h:"Ponad 80 dronów na cały zachód",t:"Po nocnej fali 339 dronów ruszył atak dzienny. Do 13:43 wykryto ponad 80 dronów lecących na Lwów, Tarnopol, Iwano-Frankiwsk, Czerniowce i Zakarpacie.",west:[["briansk","lwow",22,"d"],["briansk","tarnopol",18,"d"],["briansk","ifrankiwsk",16,"d"],["briansk","czerniowce",14,"d"],["briansk","uzhhorod",12,"d"]],n:"82",nat:{d:339,m:0}},
+ {d:"2026-07-30",h:"Kijów i Lwów, obiekt spada w Polsce",t:"Ponad 280 dronów i 70 rakiet, w tym 61 Ch-101 i Kalibrów z rejonu Wołgogradu i Noworosyjska. Główne cele: obwód kijowski i lwowski. O 3:40 polskie radary wykryły obiekt, który zniknął z ekranów; prawdopodobne miejsce upadku — Tarnawa-Kolonia na Lubelszczyźnie. Liczby obiektów w sam obwód lwowski nie podano.",west:[],n:"—",nat:{d:284,m:70}},
+ {d:"2026-05-13",h:"Główne uderzenie skierowane na zachód",t:"892 drony w dobę. Obwód wołyński naliczył 43 drony w pięć godzin, tarnopolski 23. Zakarpacie — najcięższy nalot na region od początku wojny; Węgry wezwały ambasadora Rosji.",west:[["briansk","luck",43,"d"],["briansk","tarnopol",23,"d"]],n:"66",nat:{d:892,m:0}}
+];
+EV.sort((a,b)=>a.d<b.d?-1:1);
+const T0=Date.UTC(2022,1,24),DAY=864e5,T1=Date.UTC(+DATA_TO.slice(0,4),+DATA_TO.slice(5,7)-1,+DATA_TO.slice(8,10))+DAY,SPAN=(T1-T0)/DAY;
+EV.forEach(e=>{const p=e.d.split("-").map(Number);e.ts=Date.UTC(p[0],p[1]-1,p[2]);e.f=(e.ts-T0)/DAY/SPAN;
+  e.nv=parseInt(String(e.n).replace(/[^0-9]/g,""))||0;});
+const MON=["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
+
+/* ══════════════ 2. PROJEKCJA / RELIEF (subtelny) ══════════════ */
+const K=4.0,LON0=31.15,LAT0=48.40,CL=0.662,VEX=0.55;
+const px=l=>(l-LON0)*CL*K,pz=l=>(LAT0-l)*K,lonOf=x=>x/(CL*K)+LON0,latOf=z=>LAT0-z/K;
+const RIDGES=[[22.60,49.30,25.40,47.90,.62,1],[22.15,48.75,24.20,48.25,.42,.44],[33.60,44.55,35.15,44.90,.24,.7],
+ [25.40,49.65,29.60,48.30,.95,.21],[24.40,50.65,26.60,50.35,.55,.13],[37.30,48.85,39.30,47.95,.58,.19],[30.40,49.55,33.60,48.45,1.05,.12]];
+function segDist(x,y,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,l=dx*dx+dy*dy;let t=l?((x-ax)*dx+(y-ay)*dy)/l:0;t=Math.max(0,Math.min(1,t));return Math.hypot(x-(ax+t*dx),y-(ay+t*dy));}
+let sd=1337;const rnd=()=>{sd=(sd*1664525+1013904223)&0x7fffffff;return sd/0x7fffffff;};
+const PERM=new Uint8Array(512);{const p=[...Array(256).keys()];for(let i=255;i>0;i--){const j=(rnd()*(i+1))|0;[p[i],p[j]]=[p[j],p[i]];}for(let i=0;i<512;i++)PERM[i]=p[i&255];}
+const fade=t=>t*t*t*(t*(t*6-15)+10);
+function grad(h,x,y){const u=h&1?x:y,v=h&1?y:x;return(h&2?-u:u)+(h&4?-2*v:2*v);}
+function perlin(x,y){const X=Math.floor(x)&255,Y=Math.floor(y)&255;x-=Math.floor(x);y-=Math.floor(y);const u=fade(x),v=fade(y),A=PERM[X]+Y,B=PERM[X+1]+Y;const l=(a,b,t)=>a+t*(b-a);
+  return l(l(grad(PERM[A],x,y),grad(PERM[B],x-1,y),u),l(grad(PERM[A+1],x,y-1),grad(PERM[B+1],x-1,y-1),u),v);}
+function fbm(x,y){let s=0,a=.5,f=1;for(let i=0;i<4;i++){s+=perlin(x*f,y*f)*a;a*=.5;f*=2.1;}return s;}
+function height(lon,lat){let h=0;for(const r of RIDGES){const d=segDist(lon,lat,r[0],r[1],r[2],r[3]);h+=r[5]*Math.exp(-(d*d)/(2*r[4]*r[4]*.34));}
+  h*=.75+.5*Math.abs(fbm(lon*1.35,lat*1.35));h+=.02*fbm(lon*3.1,lat*3.1);const sea=Math.min(1,Math.max(0,(lat-44.2)/.7));return Math.max(0,h)*sea*VEX;}
+function inPolyP(lon,lat,P){let c=false;for(let i=0,j=P.length-1;i<P.length;j=i++){const a=P[i],b=P[j];if((a[1]>lat)!==(b[1]>lat)&&lon<(b[0]-a[0])*(lat-a[1])/(b[1]-a[1])+a[0])c=!c;}return c;}
+const inPoly=(lon,lat)=>inPolyP(lon,lat,UA);
+function snapToBorder(lon,lat){let best=null,bd=1e9;for(let i=0,j=UA.length-1;i<UA.length;j=i++){const a=UA[j],b=UA[i],dx=b[0]-a[0],dy=b[1]-a[1],l=dx*dx+dy*dy;
+  let t=l?((lon-a[0])*dx+(lat-a[1])*dy)/l:0;t=Math.max(0,Math.min(1,t));const qx=a[0]+t*dx,qy=a[1]+t*dy,d=(lon-qx)**2+(lat-qy)**2;if(d<bd){bd=d;best=[qx,qy];}}return best;}
+function oblastAt(lon,lat){for(let i=0;i<GEO.obl.length;i++)if(inPolyP(lon,lat,GEO.obl[i].p))return i;return -1;}
+function pnoise(x,y,P){const xi=Math.floor(x),yi=Math.floor(y);const X=((xi%P)+P)%P,Y=((yi%P)+P)%P,X1=(X+1)%P,Y1=(Y+1)%P;x-=xi;y-=yi;
+  const u=fade(x),v=fade(y),h=(a,b)=>PERM[PERM[a]+b],l=(a,b,t)=>a+t*(b-a);
+  return l(l(grad(h(X,Y),x,y),grad(h(X1,Y),x-1,y),u),l(grad(h(X,Y1),x,y-1),grad(h(X1,Y1),x-1,y-1),u),v);}
+
+/* ══════════════ 3. TEKSTURA POLITYCZNA ══════════════ */
+const bx0=px(22.05),bx1=px(40.30),bz0=pz(52.45),bz1=pz(44.30),BW=bx1-bx0,BH=bz1-bz0;
+const RIVERS=[[9,[[30.55,51.55],[30.5,51.05],[30.52,50.45],[31.0,50.0],[31.5,49.75],[32.2,49.4],[33.4,49.1],[34.3,48.8],[35.0,48.5],[35.15,47.85],[34.6,47.6],[34.0,47.45],[33.4,47.1],[32.9,46.9],[32.6,46.65],[32.3,46.5]]],
+ [4.5,[[23.5,49.4],[24.5,49.05],[25.6,48.7],[26.6,48.5],[27.4,48.5],[28.2,48.2],[28.9,47.8],[29.4,47.0],[29.6,46.5],[30.2,46.15]]],
+ [4,[[26.2,49.7],[27.3,49.4],[28.5,49.0],[29.6,48.5],[30.3,48.1],[31.0,47.7],[31.6,47.3],[32.0,46.95]]],
+ [4,[[33.0,52.0],[32.6,51.7],[32.0,51.6],[31.3,51.5],[30.9,51.0],[30.6,50.55]]],
+ [3.5,[[36.0,50.15],[36.6,49.85],[37.3,49.35],[37.8,49.0],[38.5,48.7],[39.3,48.45],[39.9,48.3]]],
+ [3,[[24.0,50.0],[24.4,50.6],[24.6,51.2],[24.4,51.7]]],[3,[[33.6,50.9],[33.9,50.3],[34.0,49.7],[33.8,49.3]]]];
+const OBL_FILL=["#D9D3C0","#D0C9B4","#DFD9C6","#CBC5B2","#D5CEBA"];
+const WEST_FILL=["#E4CFB2","#DCC5A6","#E9D6BC"];
+function makeMapTexture(){
+  const W=2048,H=Math.round(2048*BH/BW),c=document.createElement("canvas");c.width=W;c.height=H;
+  const g=c.getContext("2d"),X=l=>((px(l)-bx0)/BW)*W,Y=l=>((pz(l)-bz0)/BH)*H;
+  const path=P=>{g.beginPath();P.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.closePath();};
+  g.fillStyle="#1B2A31";g.fillRect(0,0,W,H);
+  g.save();path(UA);g.clip();
+  g.fillStyle="#D5CEBA";g.fillRect(0,0,W,H);
+  GEO.obl.forEach(o=>{path(o.p);g.fillStyle=o.w?WEST_FILL[o.k%3]:OBL_FILL[o.k%5];g.fill();});
+  /* delikatne ziarno papieru */
+  for(let i=0;i<30000;i++){const a=rnd()*.06;g.fillStyle=rnd()<.5?`rgba(0,0,0,${a})`:`rgba(255,255,255,${a})`;g.fillRect(rnd()*W,rnd()*H,2,2);}
+  /* rzeki */
+  g.lineCap="round";g.lineJoin="round";
+  RIVERS.forEach(r=>{const pp=()=>{g.beginPath();r[1].forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));};
+    pp();g.strokeStyle="rgba(60,100,112,.45)";g.lineWidth=r[0]*1.5;g.stroke();
+    pp();g.strokeStyle="#5F93A4";g.lineWidth=r[0]*.85;g.stroke();});
+  /* granice obwodów */
+  g.strokeStyle="rgba(84,78,66,.72)";g.lineWidth=2.4;g.setLineDash([]);
+  GEO.obl.forEach(o=>{path(o.p);g.stroke();});
+  /* tereny okupowane: przyciemnienie + kreskowanie */
+  path(OCC);g.fillStyle="rgba(70,40,36,.30)";g.fill();
+  g.save();path(OCC);g.clip();g.strokeStyle="rgba(90,40,34,.32)";g.lineWidth=3;
+  for(let x=-H;x<W;x+=26){g.beginPath();g.moveTo(x,0);g.lineTo(x+H,H);g.stroke();}g.restore();
+  g.strokeStyle="#6E2E24";g.lineWidth=7;g.setLineDash([26,16]);g.beginPath();
+  FRONT.forEach((p,i)=>i?g.lineTo(X(p[0]),Y(p[1])):g.moveTo(X(p[0]),Y(p[1])));g.stroke();g.setLineDash([]);
+  g.restore();
+  const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=16;return t;
+}
+function makeWaterNormal(){const N=256,c=document.createElement("canvas");c.width=c.height=N;const g=c.getContext("2d"),img=g.createImageData(N,N),d=img.data,Hh=new Float32Array(N*N);
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const u=i/N,v=j/N;Hh[j*N+i]=pnoise(u*6,v*6,6)*.55+pnoise(u*12,v*12,12)*.28+pnoise(u*24,v*24,24)*.14;}
+  for(let j=0;j<N;j++)for(let i=0;i<N;i++){const k=j*N+i,dx=(Hh[j*N+((i+1)%N)]-Hh[k])*N*.09,dz=(Hh[((j+1)%N)*N+i]-Hh[k])*N*.09,nl=1/Math.sqrt(dx*dx+dz*dz+1);
+    d[k*4]=(-dx*nl*.5+.5)*255;d[k*4+1]=(-dz*nl*.5+.5)*255;d[k*4+2]=(nl*.5+.5)*255;d[k*4+3]=255;}
+  g.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(16,16);return t;}
+
+/* ══════════════ 4. SCENA ══════════════ */
+const stage=document.getElementById("stage"),holder=document.getElementById("gl");
+const small=innerWidth<760;
+let renderer;
+try{renderer=new THREE.WebGLRenderer({antialias:!small,powerPreference:"high-performance"});}
+catch(e){document.getElementById("boot").textContent="Ta przeglądarka nie obsługuje WebGL.";throw e;}
+renderer.setPixelRatio(Math.min(devicePixelRatio,small?1.6:2));
+renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.0;
+renderer.shadowMap.enabled=!small;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+holder.appendChild(renderer.domElement);
+const scene=new THREE.Scene();scene.fog=new THREE.Fog(0x0E2432,110,320);
+const camera=new THREE.PerspectiveCamera(38,16/9,.5,900);camera.position.set(-27,32,48);
+const pmrem=new THREE.PMREMGenerator(renderer);scene.environment=pmrem.fromScene(new RoomEnvironment(),.04).texture;
+
+const sky=new THREE.Mesh(new THREE.SphereGeometry(420,32,20),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+  uniforms:{a:{value:new THREE.Color(0x05101A)},b:{value:new THREE.Color(0x12303F)},c:{value:new THREE.Color(0x2E5B6A)}},
+  vertexShader:`varying vec3 p;void main(){p=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
+  fragmentShader:`uniform vec3 a,b,c;varying vec3 p;void main(){float h=clamp(normalize(p).y,-.2,1.);
+    vec3 col=h<0.?mix(c,b,clamp(-h*5.,0.,1.)):mix(c,mix(b,a,pow(h,.75)),clamp(h*7.,0.,1.));gl_FragColor=vec4(col,1.);}`}));
+scene.add(sky);
+scene.add(new THREE.HemisphereLight(0xBFD6E2,0x2A2620,.5));
+const key=new THREE.DirectionalLight(0xFFEBD2,2.2);key.position.set(-46,58,26);key.castShadow=!small;
+key.shadow.mapSize.set(small?1024:2048,small?1024:2048);
+Object.assign(key.shadow.camera,{left:-46,right:46,top:40,bottom:-40,near:8,far:170});
+key.shadow.bias=-.00035;key.shadow.normalBias=.035;key.shadow.radius=3;scene.add(key);
+const rim=new THREE.DirectionalLight(0x7FB4CE,.7);rim.position.set(38,16,-42);scene.add(rim);
+const fillL=new THREE.DirectionalLight(0xC98F6A,.3);fillL.position.set(30,12,40);scene.add(fillL);
+
+/* --- teren Ukrainy (subtelny relief) --- */
+const NX=small?150:250,NZ=Math.round(NX*BH/BW);
+const pos=[],uvs=[],idx=[],inside=[];
+for(let j=0;j<=NZ;j++)for(let i=0;i<=NX;i++){let X=bx0+(i/NX)*BW,Z=bz0+(j/NZ)*BH,lon=lonOf(X),lat=latOf(Z),ins=inPoly(lon,lat);
+  if(!ins){const s=snapToBorder(lon,lat);lon=s[0];lat=s[1];X=px(lon);Z=pz(lat);}
+  inside.push(ins);pos.push(X,ins?height(lon,lat):0,Z);uvs.push((X-bx0)/BW,1-(Z-bz0)/BH);}
+for(let j=0;j<NZ;j++)for(let i=0;i<NX;i++){const a=j*(NX+1)+i,b=a+1,c=a+NX+1,d=c+1;if(inside[a]||inside[b]||inside[c]||inside[d])idx.push(a,c,b,b,c,d);}
+const tg=new THREE.BufferGeometry();tg.setAttribute("position",new THREE.Float32BufferAttribute(pos,3));
+tg.setAttribute("uv",new THREE.Float32BufferAttribute(uvs,2));tg.setIndex(idx);tg.computeVertexNormals();
+const terrain=new THREE.Mesh(tg,new THREE.MeshStandardMaterial({map:makeMapTexture(),roughness:.88,metalness:0,envMapIntensity:.4,side:THREE.DoubleSide}));
+terrain.castShadow=terrain.receiveShadow=true;scene.add(terrain);
+
+/* --- poświata --- */
+const HW=1024,HH=Math.round(1024*BH/BW),hcv=document.createElement("canvas");hcv.width=HW;hcv.height=HH;
+const hctx=hcv.getContext("2d"),heatTex=new THREE.CanvasTexture(hcv);heatTex.colorSpace=THREE.SRGBColorSpace;
+const heat=new THREE.Mesh(tg,new THREE.MeshBasicMaterial({map:heatTex,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,
+  side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2}));heat.position.y=.03;scene.add(heat);
+let heatDirty=false,heatFadeT=0,heatUpT=0;
+function heatPaint(v,west){const x=((v.x-bx0)/BW)*HW,y=((v.z-bz0)/BH)*HH,r=west?15:10,g=hctx.createRadialGradient(x,y,0,x,y,r);
+  if(west){g.addColorStop(0,"rgba(255,120,70,.62)");g.addColorStop(.5,"rgba(230,70,30,.28)");}else{g.addColorStop(0,"rgba(255,170,80,.48)");g.addColorStop(.5,"rgba(220,110,40,.2)");}
+  g.addColorStop(1,"rgba(0,0,0,0)");hctx.globalCompositeOperation="lighter";hctx.fillStyle=g;hctx.fillRect(x-r,y-r,r*2,r*2);heatDirty=true;}
+function heatFade(){hctx.globalCompositeOperation="destination-out";hctx.fillStyle="rgba(0,0,0,.055)";hctx.fillRect(0,0,HW,HH);hctx.globalCompositeOperation="source-over";heatDirty=true;}
+function heatClear(){hctx.globalCompositeOperation="source-over";hctx.clearRect(0,0,HW,HH);heatDirty=true;}
+
+/* --- cokół Ukrainy --- */
+function shapeOf(ring){const s=new THREE.Shape();ring.forEach((p,i)=>i?s.lineTo(px(p[0]),-pz(p[1])):s.moveTo(px(p[0]),-pz(p[1])));s.closePath();return s;}
+const slabGeo=new THREE.ExtrudeGeometry(shapeOf(UA),{depth:1.5,bevelEnabled:true,bevelThickness:.14,bevelSize:.14,bevelSegments:3});
+slabGeo.rotateX(-Math.PI/2);
+const slab=new THREE.Mesh(slabGeo,new THREE.MeshStandardMaterial({color:0x2F4656,roughness:.58,metalness:.22,envMapIntensity:.9}));
+slab.position.y=-1.45;slab.receiveShadow=true;scene.add(slab);
+
+/* --- sąsiedzi: płaskie płyty niżej niż Ukraina --- */
+const nbr=new THREE.Group();scene.add(nbr);
+const NBR_COL={nato:0x2F4A5C,blr:0x4A3F3A,rus:0x4E3A38,mda:0x3E4A4F};
+for(const k in GEO.cty){if(k==="UKR")continue;
+  const col=NATO.has(k)?NBR_COL.nato:k==="BLR"?NBR_COL.blr:k==="RUS"?NBR_COL.rus:NBR_COL.mda;
+  GEO.cty[k].forEach(ring=>{const g=new THREE.ExtrudeGeometry(shapeOf(ring),{depth:1.08,bevelEnabled:false});g.rotateX(-Math.PI/2);
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:col,roughness:.85,metalness:.05,envMapIntensity:.35}));
+    m.position.y=-1.44;m.receiveShadow=true;nbr.add(m);});}
+
+/* --- woda --- */
+const waterN=makeWaterNormal();
+const water=new THREE.Mesh(new THREE.PlaneGeometry(560,560),new THREE.MeshStandardMaterial({color:0x0B2331,roughness:.46,metalness:.04,normalMap:waterN,normalScale:new THREE.Vector2(.14,.14),envMapIntensity:.45}));
+water.rotation.x=-Math.PI/2;water.position.y=-1.46;water.receiveShadow=true;scene.add(water);
+
+/* --- grube linie --- */
+const lineMats=[];
+function fatLine(points,color,width,o={}){const g=new LineGeometry();g.setPositions(points.flatMap(v=>[v.x,v.y,v.z]));
+  const m=new LineMaterial({color,linewidth:width,transparent:true,opacity:o.opacity??1,dashed:!!o.dashed,dashSize:o.dashSize||1,gapSize:o.gapSize||.6,depthWrite:false});
+  m.resolution.set(stage.clientWidth||1200,stage.clientHeight||700);lineMats.push(m);const l=new Line2(g,m);if(o.dashed)l.computeLineDistances();return l;}
+const v3=(lon,lat,dy)=>new THREE.Vector3(px(lon),height(lon,lat)+(dy||.1),pz(lat));
+
+/* granica: klasyfikacja segmentów wg sąsiada */
+const NB_SEGS=[];for(const k in GEO.cty){if(k==="UKR")continue;GEO.cty[k].forEach(r=>{for(let i=0;i<r.length;i++)NB_SEGS.push([k,r[i],r[(i+1)%r.length]]);});}
+function nbClass(p){let best=null,bd=.045;for(const s of NB_SEGS){const d=segDist(p[0],p[1],s[1][0],s[1][1],s[2][0],s[2][1]);if(d<bd){bd=d;best=s[0];}}
+  return best?(NATO.has(best)?"nato":best.toLowerCase()):"coast";}
+const BORDER_STYLE={nato:[0x6FB1D6,3.2,.95],blr:[0xE0B060,2.8,.9],rus:[0xE06A50,2.8,.9],mda:[0x9AA4A8,2,.8],coast:[0xC4E0EC,1.3,.5]};
+const borderGroup=new THREE.Group();scene.add(borderGroup);
+{let run=[],cls=null;
+ const flush=()=>{if(run.length>1){const st=BORDER_STYLE[cls];borderGroup.add(fatLine(run,st[0],st[1],{opacity:st[2]}));}};
+ for(let i=0;i<=UA.length;i++){const a=UA[i%UA.length],b=UA[(i+1)%UA.length],mid=[(a[0]+b[0])/2,(a[1]+b[1])/2],c=nbClass(mid);
+   const pt=v3(a[0],a[1],.12);
+   if(c!==cls){if(cls!==null){run.push(pt);flush();}run=[pt];cls=c;}else run.push(pt);}
+ flush();}
+/* front */
+scene.add(fatLine(FRONT.map(p=>v3(p[0],p[1],.16)),0xFFB59E,2.4,{dashed:true,dashSize:.85,gapSize:.5,opacity:.95}));
+
+/* obrysy obwodów: ukryte, do podświetlania */
+const oblLines=GEO.obl.map(o=>{const pts=o.p.map(p=>v3(p[0],p[1],.14));pts.push(pts[0].clone());
+  const l=fatLine(pts,0xFFFFFF,2.2,{opacity:.9});l.visible=false;scene.add(l);return l;});
+
+/* pierścienie zasięgu z Briańska */
+const rings=new THREE.Group();scene.add(rings);
+[[400,"400 km"],[800,"800 km"],[1200,"1200 km"]].forEach(([km])=>{const R=km/111*K,B=SRC.briansk,cx=px(B[0]),cz=pz(B[1]),pts=[];
+  for(let a=175;a<=270;a+=2){const r=a*Math.PI/180,x=cx+R*Math.cos(r),z=cz-R*Math.sin(r),lon=lonOf(x),lat=latOf(z);
+    pts.push(new THREE.Vector3(x,(inPoly(lon,lat)?height(lon,lat):-.3)+.2,z));}
+  rings.add(fatLine(pts,0xDCE8EE,1.2,{dashed:true,dashSize:.5,gapSize:.7,opacity:.4}));});
+
+/* markery startów */
+const srcGroup=new THREE.Group();scene.add(srcGroup);
+const needleMat=new THREE.MeshStandardMaterial({color:0xB9D9E8,roughness:.3,metalness:.5,emissive:0x2C6F8A,emissiveIntensity:.5});
+const tipMat=new THREE.MeshBasicMaterial({color:0xDDF3FF}),baseMat=new THREE.MeshBasicMaterial({color:0x8FCBE4,transparent:true,opacity:.55,side:THREE.DoubleSide,depthWrite:false});
+const SRCM={};
+for(const k in SRC){const g=new THREE.Group();
+  const n=new THREE.Mesh(new THREE.ConeGeometry(.075,2.4,10),needleMat);n.position.y=1.2;n.castShadow=true;g.add(n);
+  const t=new THREE.Mesh(new THREE.SphereGeometry(.14,12,10),tipMat);t.position.y=2.48;g.add(t);
+  const b=new THREE.Mesh(new THREE.RingGeometry(.34,.5,40),baseMat);b.rotation.x=-Math.PI/2;b.position.y=.02;g.add(b);
+  const onLand=inPoly(SRC[k][0],SRC[k][1]);g.position.set(px(SRC[k][0]),onLand?.05:-.3,pz(SRC[k][1]));g.visible=false;srcGroup.add(g);SRCM[k]=g;}
+
+/* ══════════════ 5. TRASY, MODELE, EFEKTY ══════════════ */
+const R=Math.PI/180;
+function gc(a,b){const h=Math.sin((b[1]-a[1])*R/2)**2+Math.cos(a[1]*R)*Math.cos(b[1]*R)*Math.sin((b[0]-a[0])*R/2)**2;return 2*6371*Math.asin(Math.sqrt(h));}
+function makeRoute(srcKey,cityKey,drone){const a=SRC[srcKey],b=CITY[cityKey];
+  const A=new THREE.Vector3(px(a[0]),1.9,pz(a[1])),B=new THREE.Vector3(px(b[0]),height(b[0],b[1])+.15,pz(b[1])),km=gc(a,b);
+  const C=new THREE.Vector3((A.x+B.x)/2,Math.min(4.5+km*.0125,17),(A.z+B.z)/2);
+  return {curve:new THREE.QuadraticBezierCurve3(A,C,B),km,dur:km/(drone?185:800)*(drone?2.3:5.2),durH:km/(drone?185:800),end:B,src:srcKey,city:cityKey,obl:oblastAt(b[0],b[1]),drone};}
+const routeLines=new THREE.Group();scene.add(routeLines);const flowMats=[];
+function addRibbon(r,color,opacity,flow){if(flow){const l=fatLine(r.curve.getPoints(72),color,2.2,{dashed:true,dashSize:.55,gapSize:.42,opacity});flowMats.push(l.material);routeLines.add(l);return l;}
+  const m=new THREE.Mesh(new THREE.TubeGeometry(r.curve,54,.05,6,false),new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false}));routeLines.add(m);return m;}
+const mainRoutes=MAIN.map(r=>{const rt=makeRoute(r[0],r[1],true);addRibbon(rt,0xB98A52,.16);SRCM[r[0]].visible=true;return rt;});
+const mainRoutesM=MAIN.map(r=>makeRoute(r[0],r[1],false));
+
+const nn=g=>g.index?g.toNonIndexed():g;
+function droneGeo(){const w0=new THREE.Shape();w0.moveTo(0,.64);w0.lineTo(.66,-.34);w0.lineTo(.30,-.44);w0.lineTo(0,-.36);w0.lineTo(-.30,-.44);w0.lineTo(-.66,-.34);w0.closePath();
+  const w=new THREE.ExtrudeGeometry(w0,{depth:.045,bevelEnabled:false});w.rotateX(Math.PI/2);w.translate(0,.045,0);
+  const body=new THREE.CylinderGeometry(.055,.078,.96,10);body.rotateX(Math.PI/2);body.translate(0,.06,.06);
+  const nose=new THREE.SphereGeometry(.058,10,8);nose.translate(0,.06,.545);
+  const fl=new THREE.BoxGeometry(.02,.17,.2);fl.translate(.60,.10,-.31);const fr=fl.clone();fr.translate(-1.20,0,0);
+  const prop=new THREE.BoxGeometry(.36,.02,.02);prop.translate(0,.06,-.44);return mergeGeometries([w,body,nose,fl,fr,prop].map(nn),false);}
+function missileGeo(){const body=new THREE.CylinderGeometry(.065,.065,1.15,10);body.rotateX(Math.PI/2);
+  const nose=new THREE.ConeGeometry(.065,.32,10);nose.rotateX(Math.PI/2);nose.translate(0,0,.735);
+  const wing=new THREE.BoxGeometry(.64,.014,.16);wing.translate(0,0,.05);const fins=[];
+  for(let i=0;i<4;i++){const f=new THREE.BoxGeometry(.015,.21,.19);f.translate(0,.135,-.5);f.rotateZ(i*Math.PI/2);fins.push(f);}
+  return mergeGeometries([body,nose,wing,...fins].map(nn),false);}
+const plumeGeo=new THREE.CylinderGeometry(.018,.07,1,7,1,true);plumeGeo.rotateX(Math.PI/2);plumeGeo.translate(0,0,-1.08);
+const droneMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.55,metalness:.2,emissive:0x5C3A12,emissiveIntensity:.5,envMapIntensity:.9});
+const missMat=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.32,metalness:.6,emissive:0x27485A,emissiveIntensity:.55,envMapIntensity:1.1});
+const plumeMat=new THREE.MeshBasicMaterial({color:0x9FD8F0,transparent:true,opacity:.42,depthWrite:false,blending:THREE.AdditiveBlending,side:THREE.DoubleSide});
+const MAXD=2600,MAXM=420;
+const drones=new THREE.InstancedMesh(droneGeo(),droneMat,MAXD),missiles=new THREE.InstancedMesh(missileGeo(),missMat,MAXM),plumes=new THREE.InstancedMesh(plumeGeo,plumeMat,MAXM);
+[drones,missiles,plumes].forEach(m=>{m.instanceMatrix.setUsage(THREE.DynamicDrawUsage);m.frustumCulled=false;scene.add(m);});
+drones.castShadow=missiles.castShadow=!small;
+/* stała, duża sfera otaczająca — raycast na InstancedMesh nie zgubi ruchomych obiektów */
+[drones,missiles].forEach(m=>{m.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,6,0),90);});
+const ZERO=new THREE.Matrix4().makeScale(0,0,0);
+function makePool(mesh,n,extra){const pool=[];for(let i=0;i<n;i++){pool.push({on:false});mesh.setColorAt(i,new THREE.Color(1,1,1));mesh.setMatrixAt(i,ZERO);if(extra)extra.setMatrixAt(i,ZERO);}
+  mesh.instanceColor.needsUpdate=true;mesh.instanceMatrix.needsUpdate=true;if(extra)extra.instanceMatrix.needsUpdate=true;return {mesh,pool,n,cursor:0,extra};}
+const PD=makePool(drones,MAXD,null),PM=makePool(missiles,MAXM,plumes);
+const CCOL={d:new THREE.Color(.95,.66,.30),w:new THREE.Color(1,.50,.30),m:new THREE.Color(.84,.91,.96)};
+function killAll(){[PD,PM].forEach(P=>{P.pool.forEach((p,i)=>{p.on=false;P.mesh.setMatrixAt(i,ZERO);if(P.extra)P.extra.setMatrixAt(i,ZERO);});P.mesh.instanceMatrix.needsUpdate=true;if(P.extra)P.extra.instanceMatrix.needsUpdate=true;});}
+function spawn(route,kind,killAt,scale,evt){const P=kind==="m"?PM:PD;
+  for(let n=0;n<P.n;n++){const i=(P.cursor+n)%P.n,p=P.pool[i];if(!p.on){P.cursor=(i+1)%P.n;p.on=true;p.r=route;p.t=0;p.kill=killAt||2;p.s=scale||1;p.kind=kind;p.ph=Math.random()*6.28;p.evt=!!evt;
+    P.mesh.setColorAt(i,CCOL[kind]);P.mesh.instanceColor.needsUpdate=true;return;}}}
+
+/* efekty */
+const puffGeo=new THREE.SphereGeometry(1,12,9),ringGeo=new THREE.RingGeometry(.72,1,40),fxPool=[],fxLive=[];
+for(let i=0;i<300;i++){const ring=i%5===4;const m=new THREE.Mesh(ring?ringGeo:puffGeo,new THREE.MeshBasicMaterial({transparent:true,depthWrite:false,side:THREE.DoubleSide}));m.visible=false;scene.add(m);fxPool.push({m,ring,on:false});}
+const C0=new THREE.Color(),C1=new THREE.Color();
+function fx(o){let slot=fxPool.find(f=>!f.on&&f.ring===!!o.ring);if(!slot){const ix=fxLive.findIndex(f=>f.slot.ring===!!o.ring);if(ix<0)return;slot=fxLive[ix].slot;fxLive.splice(ix,1);}
+  slot.on=true;const m=slot.m;m.visible=true;m.position.copy(o.p);m.rotation.set(o.ring?-Math.PI/2:0,0,0);m.scale.setScalar(o.r);m.material.color.set(o.c0);m.material.opacity=o.o;
+  m.material.blending=o.add?THREE.AdditiveBlending:THREE.NormalBlending;fxLive.push({slot,t:0,dur:o.dur,r0:o.r,r1:o.r*o.grow,o:o.o,rise:o.rise||0,c0:o.c0,c1:o.c1||o.c0,ease:o.ease||1});}
+const oblHits=GEO.obl.map(()=>[]);
+function impact(v,kind,route){const west=kind!=="d",m=kind==="m",p=v.clone();p.y+=.05;
+  fx({p,r:m?.16:.12,grow:2.2,dur:.11,o:1,c0:0xFFFFFF,add:true});
+  fx({p,r:west?.2:.15,grow:2.6,dur:m?.55:.42,o:.92,rise:.7,c0:m?0xFFE6B0:0xFFC48A,c1:0xE84A18,add:true,ease:.6});
+  fx({p,r:west?.2:.15,grow:5.2,dur:1.6,o:.5,rise:1.3,c0:0x7A6A62,c1:0x24201E,ease:1.8});
+  fx({p,r:.3,grow:west?4.6:3.2,dur:.5,o:.55,ring:true,c0:west?0xFF9A6A:0xE0A050});
+  sparks(p,5,1.6,true);heatPaint(v,west);
+  if(route&&route.obl>=0){const h=oblHits[route.obl];h.push([day,kind]);if(h.length>600)h.splice(0,200);}}
+function intercept(v){fx({p:v,r:.13,grow:2.4,dur:.1,o:1,c0:0xFFFFFF,add:true});fx({p:v,r:.16,grow:2.8,dur:.32,o:.85,c0:0xDDF3FF,c1:0x5F9DBF,add:true});
+  fx({p:v,r:.14,grow:3.4,dur:.9,o:.35,rise:.3,c0:0x8A8F94,c1:0x2B2F33,ease:1.6});sparks(v,10,2.6,false);}
+function stepFx(dt){for(let i=fxLive.length-1;i>=0;i--){const f=fxLive[i];f.t+=dt;const k=Math.min(1,f.t/f.dur),ke=Math.pow(k,f.ease),m=f.slot.m;
+  m.scale.setScalar(f.r0+(f.r1-f.r0)*ke);m.position.y+=f.rise*dt;m.material.opacity=f.o*(1-k);
+  if(f.c1!==f.c0){C0.set(f.c0);C1.set(f.c1);m.material.color.copy(C0).lerp(C1,ke);}if(k>=1){m.visible=false;f.slot.on=false;fxLive.splice(i,1);}}}
+const SPN=1400,sPos=new Float32Array(SPN*3),sVel=new Float32Array(SPN*3),sLife=new Float32Array(SPN),sGnd=new Float32Array(SPN);
+const sGeo=new THREE.BufferGeometry();sGeo.setAttribute("position",new THREE.BufferAttribute(sPos,3));
+const sparkPts=new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xFFD9A8,size:.11,sizeAttenuation:true,transparent:true,opacity:.95,depthWrite:false,blending:THREE.AdditiveBlending}));
+sparkPts.frustumCulled=false;scene.add(sparkPts);for(let i=0;i<SPN;i++)sPos[i*3+1]=-9999;let sCur=0;
+function sparks(p,n,speed,up){for(let k=0;k<n;k++){const i=sCur;sCur=(sCur+1)%SPN;const a=Math.random()*6.283,b=up?(.35+Math.random()*1.1):(Math.random()*3.14-1.57),v=speed*(.5+Math.random()*.8);
+  sPos[i*3]=p.x;sPos[i*3+1]=p.y;sPos[i*3+2]=p.z;sVel[i*3]=Math.cos(a)*Math.cos(b)*v;sVel[i*3+1]=Math.sin(b)*v+(up?.6:0);sVel[i*3+2]=Math.sin(a)*Math.cos(b)*v;sLife[i]=.55+Math.random()*.5;sGnd[i]=p.y-.04;}}
+function stepSparks(dt){for(let i=0;i<SPN;i++){if(sLife[i]<=0)continue;sLife[i]-=dt;if(sLife[i]<=0){sPos[i*3+1]=-9999;continue;}sVel[i*3+1]-=7.5*dt;
+  sPos[i*3]+=sVel[i*3]*dt;sPos[i*3+1]+=sVel[i*3+1]*dt;sPos[i*3+2]+=sVel[i*3+2]*dt;
+  if(sPos[i*3+1]<sGnd[i]){sPos[i*3+1]=sGnd[i];sVel[i*3+1]*=-.25;sVel[i*3]*=.6;sVel[i*3+2]*=.6;}}sGeo.attributes.position.needsUpdate=true;}
+const dummy=new THREE.Object3D(),tan=new THREE.Vector3(),pt=new THREE.Vector3();
+function stepPool(P,dt,dh,now){for(let i=0;i<P.n;i++){const p=P.pool[i];if(!p.on)continue;p.t+=p.evt?dh/p.r.durH:dt/p.r.dur;
+  if(p.t>=p.kill){p.on=false;P.mesh.setMatrixAt(i,ZERO);if(P.extra)P.extra.setMatrixAt(i,ZERO);if(p.kill>=2){impact(p.r.end,p.kind,p.r);if(p.evt&&p.kind!=="d")nightHit++;}else{p.r.curve.getPoint(Math.min(p.t,1),pt);intercept(pt);if(p.evt)nightInt++;}continue;}
+  const tt=Math.min(p.t,1);p.r.curve.getPoint(tt,pt);p.r.curve.getTangent(tt,tan);dummy.position.copy(pt);dummy.lookAt(pt.x+tan.x,pt.y+tan.y,pt.z+tan.z);
+  if(p.kind!=="m")dummy.rotateZ(Math.sin(now*1.7+p.ph)*.16);dummy.scale.setScalar(p.s);dummy.updateMatrix();P.mesh.setMatrixAt(i,dummy.matrix);
+  if(P.extra){dummy.scale.set(p.s*(.85+.3*Math.sin(now*23+p.ph)),p.s,p.s*(1.1+.25*Math.sin(now*17+p.ph)));dummy.updateMatrix();P.extra.setMatrixAt(i,dummy.matrix);}}
+  P.mesh.instanceMatrix.needsUpdate=true;if(P.extra)P.extra.instanceMatrix.needsUpdate=true;}
+
+/* ══════════════ 6. POST ══════════════ */
+let composer,bloom,hiQ=!small;
+function buildComposer(){composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+  if(hiQ){bloom=new UnrealBloomPass(new THREE.Vector2(1,1),.28,.34,.86);composer.addPass(bloom);const vig=new ShaderPass(VignetteShader);vig.uniforms.offset.value=1.08;vig.uniforms.darkness.value=1.15;composer.addPass(vig);}
+  composer.addPass(new OutputPass());resize();}
+buildComposer();
+
+/* ══════════════ 7. STEROWANIE I INTERAKCJE ══════════════ */
+const ctr=new OrbitControls(camera,renderer.domElement);ctr.enableDamping=true;ctr.dampingFactor=.07;ctr.rotateSpeed=.55;
+ctr.minDistance=18;ctr.maxDistance=200;ctr.maxPolarAngle=1.46;ctr.autoRotate=true;ctr.autoRotateSpeed=.25;ctr.target.set(2,0,0);
+["pointerdown","wheel","touchstart"].forEach(t=>renderer.domElement.addEventListener(t,()=>{ctr.autoRotate=false;tween=null;},{passive:true}));
+
+/* płynny przelot kamery */
+let tween=null;
+const VIEWS={all:[[-27,32,48],[2,0,0]],west:[[-40,18,22],[-22,0,-2]],front:[[36,20,26],[20,0,2]],top:[[0,72,.01],[2,0,0]]};
+function flyTo(v){const [p,t]=VIEWS[v];tween={p0:camera.position.clone(),p1:new THREE.Vector3(...p),t0:ctr.target.clone(),t1:new THREE.Vector3(...t),k:0};ctr.autoRotate=false;}
+function flyToPoint(x,z,dist){tween={p0:camera.position.clone(),p1:new THREE.Vector3(x-dist*.55,dist*.75,z+dist*.7),t0:ctr.target.clone(),t1:new THREE.Vector3(x,0,z),k:0};ctr.autoRotate=false;}
+function stepTween(dt){if(!tween)return;tween.k=Math.min(1,tween.k+dt/1.3);const e=1-Math.pow(1-tween.k,3);
+  camera.position.lerpVectors(tween.p0,tween.p1,e);ctr.target.lerpVectors(tween.t0,tween.t1,e);if(tween.k>=1)tween=null;}
+document.querySelectorAll(".cam").forEach(b=>b.onclick=()=>flyTo(b.dataset.v));
+
+/* etykiety HTML */
+const lblBox=document.getElementById("lbl"),lblEls=[];
+LABELS.forEach(l=>{const d=document.createElement("div");d.className="city"+(l[2]?" w":"");d.innerHTML="<i></i>"+l[0];lblBox.appendChild(d);const c=CITY[l[1]];lblEls.push({el:d,v:v3(c[0],c[1],.5),kind:"city"});});
+GEO.obl.forEach(o=>{if(o.city)return;const d=document.createElement("div");d.className="obl";d.textContent=o.n;lblBox.appendChild(d);lblEls.push({el:d,v:v3(o.c[0],o.c[1],.25),kind:"obl"});});
+for(const k in CTYL){const d=document.createElement("div");d.className="cty";d.textContent=CTYN[k];lblBox.appendChild(d);lblEls.push({el:d,v:new THREE.Vector3(px(CTYL[k][0]),-.2,pz(CTYL[k][1])),kind:"cty"});}
+SEAL.forEach(s=>{const d=document.createElement("div");d.className="cty sea";d.textContent=s[0];lblBox.appendChild(d);lblEls.push({el:d,v:new THREE.Vector3(px(s[1]),-1.3,pz(s[2])),kind:"sea"});});
+
+/* najechanie: obiekty w locie i obwody */
+const ray=new THREE.Raycaster();
+const ptr=new THREE.Vector2(),tip=document.getElementById("tip"),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitP=new THREE.Vector3();
+let hoverObl=-1,selObl=-1,rayT=0,mouse={x:0,y:0,in:false};
+function setPtr(e){const r=stage.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;mouse.in=true;
+  ptr.x=(mouse.x/r.width)*2-1;ptr.y=-(mouse.y/r.height)*2+1;}
+renderer.domElement.addEventListener("pointermove",setPtr);
+renderer.domElement.addEventListener("pointerleave",()=>{mouse.in=false;tip.classList.remove("on");setHover(-1);});
+function setHover(i){if(i===hoverObl)return;if(hoverObl>=0&&hoverObl!==selObl)oblLines[hoverObl].visible=false;hoverObl=i;
+  if(i>=0&&i!==selObl){oblLines[i].visible=layers.obl;oblLines[i].material.color.set(0xFFFFFF);oblLines[i].material.opacity=.7;}}
+function fmtT(h){return h<1?Math.round(h*60)+" min":(Math.floor(h)+" h "+String(Math.round(h%1*60)).padStart(2,"0")+" min");}
+function pick(){if(!mouse.in)return;ray.setFromCamera(ptr,camera);
+  const hits=ray.intersectObjects([drones,missiles],false);
+  if(hits.length){const h=hits[0],P=h.object===drones?PD:PM,p=P.pool[h.instanceId];
+    if(p&&p.on){const km=p.r.km*(1-Math.min(p.t,1)),hrs=km/(p.r.drone?185:800);
+      tip.innerHTML=`<b>${p.kind==="m"?"Rakieta manewrująca":"Dron typu Shahed"}</b><span class="k">cel:</span> ${CITYN[p.r.city]} <span class="k">·</span> ${SRCN[p.r.src]}<br><span class="k">do celu:</span> ${Math.round(km)} km <span class="k">·</span> ${fmtT(hrs)}`;
+      tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");setHover(-1);return;}}
+  if(ray.ray.intersectPlane(ground,hitP)){const lon=lonOf(hitP.x),lat=latOf(hitP.z),i=inPoly(lon,lat)?oblastAt(lon,lat):-1;setHover(i);
+    if(i>=0){const o=GEO.obl[i],n=oblHits[i].filter(h=>h[0]>day-90).length;
+      tip.innerHTML=`<b>${o.city?o.n:"obwód "+o.n}</b>${o.w?'<span class="k">zachód Ukrainy</span><br>':""}<span class="k">trafień w symulacji, ostatnie 90 dni:</span> ${n}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
+      tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");return;}}
+  tip.classList.remove("on");}
+
+/* klik: obwód → panel */
+const panel=document.getElementById("panel"),pc=document.getElementById("pc");
+let downAt=null;
+renderer.domElement.addEventListener("pointerdown",e=>{downAt=[e.clientX,e.clientY];setPtr(e);});
+renderer.domElement.addEventListener("pointerup",e=>{if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>5){downAt=null;return;}downAt=null;
+  ray.setFromCamera(ptr,camera);if(!ray.ray.intersectPlane(ground,hitP))return;const lon=lonOf(hitP.x),lat=latOf(hitP.z);
+  const i=inPoly(lon,lat)?oblastAt(lon,lat):-1;if(i>=0)selectObl(i);else closePanel();});
+document.getElementById("px").onclick=closePanel;
+function closePanel(){if(selObl>=0)oblLines[selObl].visible=false;selObl=-1;panel.classList.remove("on");}
+function selectObl(i){if(selObl>=0)oblLines[selObl].visible=false;selObl=i;const o=GEO.obl[i],l=oblLines[i];l.visible=layers.obl;l.material.color.set(0xFFB070);l.material.opacity=1;
+  const rows=[["trafień w symulacji, ostatnie 90 dni",oblHits[i].filter(h=>h[0]>day-90).length],["od ostatniego przewinięcia",oblHits[i].length]];
+  const evs=EV.filter(e=>e.f*SPAN<=day&&e.west.some(w=>oblastAt(CITY[w[1]][0],CITY[w[1]][1])===i));
+  let html=`<h3>${o.city?o.n:"obwód "+o.n}</h3><div class="sub">${o.w?"zachód Ukrainy · ":""}${GEO.obl[i].p.length} pkt granicy</div>`;
+  rows.forEach(r=>html+=`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`);
+  html+=evs.length?`<ul class="evl">`+evs.map(e=>{const w=e.west.filter(w=>oblastAt(CITY[w[1]][0],CITY[w[1]][1])===i).reduce((s,w)=>s+w[2],0);
+    return `<li><i>${e.d}</i>${e.h}<br><span style="opacity:.7">${w} ${w===1?"obiekt":"obiektów"} potwierdzonych w ten obwód</span></li>`;}).join("")+`</ul>`
+    :`<p style="margin:10px 0 0;opacity:.65;font-size:12.5px">Brak udokumentowanych nalotów z podaną liczbą obiektów do tej daty.</p>`;
+  pc.innerHTML=html;panel.classList.add("on");flyToPoint(px(o.c[0]),pz(o.c[1]),34);}
+
+/* warstwy */
+const layers={heat:true,routes:true,obl:true,nbr:true,shadow:!small,rings:true};
+document.querySelectorAll(".tg").forEach(b=>{if(b.dataset.l==="shadow"&&small)b.classList.remove("on");b.onclick=()=>{const k=b.dataset.l;layers[k]=!layers[k];b.classList.toggle("on",layers[k]);applyLayers();};});
+function applyLayers(){heat.visible=layers.heat;routeLines.visible=layers.routes;nbr.visible=layers.nbr;rings.visible=layers.rings;
+  lblEls.forEach(L=>{if(L.kind==="obl")L.el.style.display=layers.obl?"":"none";if(L.kind==="cty")L.el.style.display=layers.nbr?"":"none";});
+  if(hoverObl>=0)oblLines[hoverObl].visible=layers.obl;if(selObl>=0)oblLines[selObl].visible=layers.obl;
+  key.castShadow=layers.shadow&&!small;}
+applyLayers();
+
+/* ══════════════ 8. OŚ CZASU ══════════════ */
+const track=document.getElementById("track"),monthBars=[];
+{const keyD=(y,m)=>Date.UTC(y,m-1,1),mx=Math.max(...SERIES.map(x=>x[4]&&x[4]<dim(x[0],x[1])?x[2]/x[4]*dim(x[0],x[1]):x[2]));
+ SERIES.forEach(sr=>{const st=(keyD(sr[0],sr[1])-T0)/DAY/SPAN,en=(keyD(sr[1]===12?sr[0]+1:sr[0],sr[1]===12?1:sr[1]+1)-T0)/DAY/SPAN,d=document.createElement("div");
+   const part=sr[4]&&sr[4]<dim(sr[0],sr[1]),proj=part?sr[2]/sr[4]*dim(sr[0],sr[1]):sr[2];
+   d.className="bar"+(sr[3]?" m":"")+(part?" part":"");d.style.left=(st*100)+"%";d.style.width="calc("+((en-st)*100)+"% - 1px)";d.style.height=Math.max(1.5,(proj/mx)*52)+"px";
+   d.title=sr[0]+"-"+String(sr[1]).padStart(2,"0")+": "+sr[2].toLocaleString("pl-PL")+(sr[3]?"":" (wyliczone)")+(part?" do "+sr[4]+". dnia, słupek przeskalowany do pełnego miesiąca":"");track.appendChild(d);monthBars.push({el:d,st:st*SPAN,en:en*SPAN});});
+ EV.forEach((e,i)=>{const d=document.createElement("div");d.className="ev";d.title=e.d+" — "+e.h;d.style.left=(e.f*100)+"%";
+   d.addEventListener("pointerdown",ev=>{ev.stopPropagation();seekTo(e.f*SPAN,false);lastEv=i;evEls[i].classList.add("hit");startNight(i,true);playing=true;pb.textContent="Pauza";});track.appendChild(d);});
+ [2023,2024,2025,2026].forEach(y=>{const f=(Date.UTC(y,0,1)-T0)/DAY/SPAN,d=document.createElement("div");d.className="yr";d.style.left=(f*100)+"%";d.textContent=y;track.appendChild(d);});}
+const evEls=[...track.querySelectorAll(".ev")],tFill=document.getElementById("tFill"),tHead=document.getElementById("tHead");
+
+/* ══════════════ 9. STAN I PĘTLA ══════════════ */
+const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+let day=0,speed=3,playing=!RM,cum=0,queue=[],lastEv=-1,westShow=["—",0],westCum=0;
+let night=null,nightHit=0,nightInt=0;   // night: {i,startDay,h,endH,westN}
+const HRATE=()=>.85*Math.sqrt(speed/3);   // godzin symulacji na sekundę podczas nocy nalotu
+const eDate=document.getElementById("date"),eDay=document.getElementById("day"),eRate=document.getElementById("sRate"),eTot=document.getElementById("sTot"),
+  eWest=document.getElementById("sWest"),eWestCum=document.getElementById("sWestCum"),fl=document.getElementById("flash"),fh=document.getElementById("fh"),fp=document.getElementById("fp");
+const nf=new Intl.NumberFormat("pl-PL");
+function monthAt(d){const t=new Date(T0+d*DAY),y=t.getUTCFullYear(),m=t.getUTCMonth()+1;for(const s of SERIES)if(s[0]===y&&s[1]===m)return s;return null;}
+function cumTo(d){const t=T0+d*DAY;let sum=0;for(const s of SERIES){const a=Date.UTC(s[0],s[1]-1,1),b=s[4]?a+s[4]*DAY:Date.UTC(s[1]===12?s[0]+1:s[0],s[1]===12?0:s[1],1);if(b<=t)sum+=s[2];else if(a<t)sum+=s[2]*((t-a)/(b-a));}return sum;}
+function seekTo(d,replayEvents){day=Math.max(0,Math.min(SPAN,d));cum=cumTo(day);lastEv=-1;for(let i=0;i<EV.length;i++)if(EV[i].f*SPAN<=day)lastEv=i;
+  evEls.forEach((el,i)=>el.classList.toggle("hit",EV[i].f*SPAN<=day));killAll();queue=[];night=null;heatClear();fxLive.forEach(f=>{f.slot.m.visible=false;f.slot.on=false;});fxLive.length=0;
+  for(let i=0;i<SPN;i++){sLife[i]=0;sPos[i*3+1]=-9999;}oblHits.forEach(h=>h.length=0);
+  westShow=lastEv>=0?[EV[lastEv].n,0]:["—",0];westCum=0;for(let i=0;i<=lastEv;i++)westCum+=EV[i].nv;
+  if(replayEvents&&lastEv>=0&&day-EV[lastEv].f*SPAN<3)startNight(lastEv,false);updateHUD();}
+function startNight(i,announce){const e=EV[i];
+  while(routeLines.children.length>MAIN.length){const l=routeLines.children[routeLines.children.length-1];routeLines.remove(l);let fi=flowMats.indexOf(l.material);if(fi>=0)flowMats.splice(fi,1);fi=lineMats.indexOf(l.material);if(fi>=0)lineMats.splice(fi,1);}
+  queue=[];nightHit=0;nightInt=0;let maxH=0,westN=0;
+  /* uderzenia na zachód: 1 sylwetka = 1 potwierdzony obiekt; starty rozłożone na 2 h */
+  e.west.forEach(w=>{const drone=w[3]==="d",rt=makeRoute(w[0],w[1],drone);addRibbon(rt,drone?0xFF8A5C:0xCFE6F2,.85,true);SRCM[w[0]].visible=true;
+    for(let n=0;n<w[2];n++){const at=(n/Math.max(1,w[2]-1))*2.0;maxH=Math.max(maxH,at+rt.durH);westN++;
+      queue.push({r:rt,kind:drone?"w":"m",at,kill:e.kill&&Math.random()<e.kill?.34+Math.random()*.42:2,scale:drone?.92:1});}});
+  /* reszta salwy krajowej na osie wschód–centrum: drony 1:5, rakiety 1:1; ~90 % przechwyceń (średnia krajowa) */
+  const wd=e.west.filter(w=>w[3]==="d").reduce((a,w)=>a+w[2],0),wm=e.west.filter(w=>w[3]==="m").reduce((a,w)=>a+w[2],0);
+  const nd=Math.round(Math.max(0,(e.nat?e.nat.d:0)-wd)/5),nm=Math.max(0,(e.nat?e.nat.m:0)-wm);
+  for(let n=0;n<nd;n++){const rt=mainRoutes[(Math.random()*mainRoutes.length)|0],at=Math.random()*2.5;maxH=Math.max(maxH,at+rt.durH);
+    queue.push({r:rt,kind:"d",at,kill:Math.random()<.9?.3+Math.random()*.6:2,scale:.62+Math.random()*.18});}
+  for(let n=0;n<nm;n++){const rt=mainRoutesM[(Math.random()*mainRoutesM.length)|0],at=1.5+Math.random()*1.2;maxH=Math.max(maxH,at+rt.durH);
+    queue.push({r:rt,kind:"m",at,kill:Math.random()<.85?.3+Math.random()*.6:2,scale:1});}
+  queue.sort((a,b)=>a.at-b.at);
+  night={i,startDay:e.f*SPAN,h:0,endH:maxH+.6,westN};day=night.startDay;
+  westShow=[e.n,0];if(announce!==false){westCum+=e.nv;fh.textContent=e.h;fp.textContent=e.t;fl.classList.add("on");clearTimeout(startNight._t);startNight._t=setTimeout(()=>fl.classList.remove("on"),12000);}}
+function updateHUD(){const t=new Date(T0+day*DAY);const hh=String(t.getUTCHours()).padStart(2,"0")+":"+String(t.getUTCMinutes()).padStart(2,"0");
+  eDate.textContent=t.getUTCDate()+" "+MON[t.getUTCMonth()]+" "+t.getUTCFullYear()+(night?", "+hh:"");
+  eDay.textContent=night?"noc nalotu · 1 s ≈ "+HRATE().toFixed(1).replace(".",",")+" h · zachód: "+nightHit+" / "+night.westN+" doleciało · przechwycone: "+nightInt:"dzień "+nf.format(Math.round(day))+" wojny";
+  const m=monthAt(day),rate=m?m[2]/(m[4]||30.4):0;eRate.textContent=(m&&m[3]?"":"~")+nf.format(Math.round(rate));eTot.textContent=nf.format(Math.round(cum));eWest.textContent=westShow[0];eWestCum.textContent=nf.format(westCum);
+  monthBars.forEach(b=>{b.el.classList.toggle("past",b.en<=day);b.el.classList.toggle("now",b.st<=day&&day<b.en);});tFill.style.width=(day/SPAN*100)+"%";tHead.style.left=(day/SPAN*100)+"%";}
+track.addEventListener("pointerdown",e=>{if(e.target.classList.contains("ev"))return;const seek=ev=>{const r=track.getBoundingClientRect();seekTo(((ev.clientX-r.left)/r.width)*SPAN,true);};seek(e);
+  const mv=ev=>seek(ev),up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);};addEventListener("pointermove",mv);addEventListener("pointerup",up);});
+const pb=document.getElementById("play");pb.textContent=playing?"Pauza":"Odtwórz";
+function togglePlay(){playing=!playing;pb.textContent=playing?"Pauza":"Odtwórz";}
+pb.onclick=togglePlay;
+document.getElementById("rewind").onclick=()=>{seekTo(0,false);playing=true;pb.textContent="Pauza";};
+document.querySelectorAll(".spd").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.s));
+function setSpeed(s){speed=s;document.querySelectorAll(".spd").forEach(x=>x.classList.toggle("on",+x.dataset.s===s));}
+const qb=document.getElementById("quality");qb.onclick=()=>{hiQ=!hiQ;qb.textContent="Jakość: "+(hiQ?"wysoka":"oszczędna");renderer.setPixelRatio(Math.min(devicePixelRatio,hiQ?2:1));buildComposer();};
+addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="BUTTON")return;
+  if(e.code==="Space"){e.preventDefault();togglePlay();}else if(e.key==="ArrowRight"){seekTo(day+30,true);}else if(e.key==="ArrowLeft"){seekTo(day-30,true);}
+  else if(e.key==="1")setSpeed(1);else if(e.key==="2")setSpeed(3);else if(e.key==="3")setSpeed(8);else if(e.key==="Escape")closePanel();});
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);camera.aspect=w/h;
+  /* pionowy ekran: poszerz pole widzenia, żeby kraj mieścił się w kadrze */
+  camera.fov=Math.max(38,Math.min(58,38*Math.sqrt((16/9)/camera.aspect)));camera.updateProjectionMatrix();composer.setSize(w,h);if(bloom)bloom.setSize(w,h);lineMats.forEach(m=>m.resolution.set(w,h));}
+addEventListener("resize",resize);
+
+const proj=new THREE.Vector3();let last=performance.now();
+document.getElementById("fresh").textContent="dane Sił Powietrznych do "+DATA_TO.split("-").reverse().join(".")+(DATA_SRC==="feed"?" · feed":" · wbudowane");
+seekTo(0,false);document.getElementById("boot").classList.add("gone");setTimeout(()=>document.getElementById("boot").remove(),700);
+function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.05);last=now;stepTween(dt);ctr.update();
+  let dh=0;
+  if(playing){
+    if(night){
+      dh=dt*HRATE();night.h+=dh;day=night.startDay+night.h/24;
+      let g=0;while(queue.length&&queue[0].at<=night.h&&g++<80){const q=queue.shift();spawn(q.r,q.kind,q.kill,q.scale,true);}
+      if(night.h>=night.endH&&!queue.length)night=null;
+    }else{
+      const prev=day;day=Math.min(SPAN,day+dt*speed*14);cum+=cumTo(day)-cumTo(prev);
+      for(let i=lastEv+1;i<EV.length;i++)if(EV[i].f*SPAN<=day){lastEv=i;evEls[i].classList.add("hit");startNight(i,true);break;}
+      if(day>=SPAN){playing=false;pb.textContent="Odtwórz";}
+    }
+    updateHUD();
+  }
+  /* strumień tła między nalotami: gęstość rośnie z tempem, żeby liczba trafień na dzień symulacji była stała */
+  if(!night){const m=monthAt(day);if(m){spawn.acc=(spawn.acc||0)+dt*(m[2]/(m[4]||30.4))/22*Math.pow(speed/3,.6);let g=0;while(spawn.acc>=1&&g++<40){spawn.acc-=1;spawn(mainRoutes[(Math.random()*mainRoutes.length)|0],"d",2,.62+Math.random()*.18,false);}}}
+  const nowS=now/1000;stepPool(PD,dt,dh,nowS);stepPool(PM,dt,dh,nowS);stepFx(dt);stepSparks(dt);
+  waterN.offset.x+=dt*.006;waterN.offset.y+=dt*.004;flowMats.forEach(mm=>mm.dashOffset-=dt*1.6);
+  heatFadeT+=dt;if(heatFadeT>.3){heatFadeT=0;heatFade();}heatUpT+=dt;if(heatDirty&&heatUpT>.09){heatUpT=0;heatDirty=false;heatTex.needsUpdate=true;}
+  rayT+=dt;if(rayT>.05){rayT=0;pick();}
+  const w=stage.clientWidth,h=stage.clientHeight,dist=camera.position.distanceTo(ctr.target);
+  const oblOp=Math.max(0,Math.min(1,(62-dist)/22));
+  lblEls.forEach(L=>{proj.copy(L.v).project(camera);const vis=proj.z<1&&Math.abs(proj.x)<1.05&&Math.abs(proj.y)<1.05;
+    let op=vis?1:0;if(L.kind==="obl")op*=oblOp;if(L.kind==="cty")op*=.6;if(L.kind==="sea")op*=.45;L.el.style.opacity=op;
+    if(vis){L.el.style.left=((proj.x*.5+.5)*w)+"px";L.el.style.top=((-proj.y*.5+.5)*h)+"px";}});
+  composer.render();}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
