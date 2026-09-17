@@ -16,6 +16,7 @@ Jeden plik, zero zależności poza three.js z CDN. Działa na GitHub Pages bez b
 | Łuki i czasy przelotu | rzeczywista odległość ortodromiczna | 185 km/h dla Gerana-2, ok. 800 km/h dla rakiet manewrujących |
 | Relief terenu | przewyższenie ok. 40× | proceduralny, oparty na rzeczywistym układzie pasm |
 | Licznik narastający | przybliżony | suma serii miesięcznej |
+| Obiekty poza Ukrainą | wybór udokumentowanych przypadków | bursztynowe szpilki w Polsce, Mołdawii, Rumunii, na Łotwie i Litwie; lista `INC` w `index.html`, do rozszerzania |
 
 ## Skąd biorą się liczby i jak się aktualizują
 
@@ -64,6 +65,9 @@ Licznik narastający miesza dwie definicje, stąd znak przybliżenia.
 - **Klasyfikacja granicy** — każdy segment obrysu Ukrainy dostaje kolor sąsiada, do którego
   jest najbliżej: NATO (Polska, Słowacja, Węgry, Rumunia), Białoruś, Rosja, Mołdawia, wybrzeże
 - Linia frontu i zasięg okupacji — przybliżone ręcznie
+- **Reszta kontynentu** — Natural Earth 50m, państwa przycięte do 2–78°E / 33–73°N i uproszczone do ok. 0,1°,
+  tonowane politycznie (NATO chłodne, Rosja i Białoruś ciepłe, pozostałe neutralne) z granicami; woda zostaje
+  tylko w Morzu Czarnym, Azowskim, Bałtyku i Kaspijskim
 
 ## Interakcje
 
@@ -72,6 +76,8 @@ Licznik narastający miesza dwie definicje, stąd znak przybliżenia.
 - **Kliknięcie obwodu** — kamera dolatuje, panel pokazuje udokumentowane naloty w ten obwód
   do bieżącej daty z liczbą potwierdzonych obiektów
 - **Kliknięcie znacznika na osi czasu** — skok do daty i odtworzenie nalotu
+- **Noc nalotu** — czas zwalnia do ok. godziny na sekundę; HUD pokazuje pasek postępu nocy i przycisk „Pomiń noc”
+- **Szpilka poza Ukrainą** — najechanie lub kliknięcie pokazuje, co i kiedy spadło w sąsiednim państwie
 - **Widoki** — cały kraj, zachód, front, z góry; płynny przelot kamery
 - **Warstwy** — poświata, trasy, obwody, sąsiedzi, cienie, pierścienie zasięgu 400/800/1200 km
 - **Klawiatura** — spacja pauza, strzałki ±30 dni, 1/2/3 prędkość, Esc zamyka panel
