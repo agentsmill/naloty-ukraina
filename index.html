@@ -21,9 +21,17 @@ h1{font-family:"Fraunces",Georgia,serif;font-size:clamp(28px,4.6vw,44px);line-he
 .lede{margin:0 0 20px;max-width:66ch;opacity:.84}
 
 #stage{position:relative;width:100%;aspect-ratio:16/9;min-height:380px;background:var(--deep);
- border:1px solid var(--ink);overflow:hidden;touch-action:none;-webkit-tap-highlight-color:transparent;
+ border:1px solid var(--ink);overflow:hidden;touch-action:pan-y;-webkit-tap-highlight-color:transparent;
  box-shadow:inset 0 0 0 1px rgba(255,255,255,.04),0 24px 60px -30px rgba(18,38,46,.55)}
+#view{position:absolute;inset:0}
+#below{display:none}
 #gl,#lbl{position:absolute;inset:0}
+#zoom{position:absolute;right:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:6px;z-index:3}
+#zoom button{width:34px;height:34px;padding:0;font-size:19px;line-height:1;color:#EEF1EC;background:rgba(10,23,32,.62);border:1px solid rgba(255,255,255,.28)}
+#zoom button:hover{background:rgba(255,255,255,.16);color:#fff}
+#wheelHint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);padding:9px 14px;background:rgba(10,23,32,.88);color:#EEF1EC;
+ font-size:13px;border:1px solid rgba(255,255,255,.16);border-radius:2px;pointer-events:none;opacity:0;transition:opacity .25s;z-index:4;white-space:nowrap}
+#wheelHint.on{opacity:1}
 #gl canvas{display:block;width:100%;height:100%}
 #lbl{pointer-events:none;overflow:hidden}
 .city{position:absolute;transform:translate(-50%,-50%);font-size:11.5px;font-weight:500;color:#EEF1EC;
@@ -100,7 +108,8 @@ body.night #track .head::after{animation:hb 1s ease-in-out infinite}@keyframes h
 .context a,#eventSource{color:inherit;text-underline-offset:3px}
 #eventSource{pointer-events:auto;font-size:12px}
 #endCard{position:absolute;z-index:4;left:50%;top:44%;transform:translate(-50%,-50%);width:min(430px,calc(100% - 32px));padding:22px;background:rgba(10,23,32,.96);color:#EEF1EC;border:1px solid #527080}
-#endCard[hidden]{display:none}#endCard h3{margin:0 0 8px;font-family:"Fraunces",serif;font-size:25px;font-weight:500}
+#endCard[hidden]{display:none}
+#endCard .x{position:absolute;right:4px;top:2px;background:none;border:0;color:#EEF1EC;opacity:.6;font-size:22px;line-height:1;padding:8px 12px}#endCard .x:hover{opacity:1;background:none}#endCard h3{margin:0 0 8px;font-family:"Fraunces",serif;font-size:25px;font-weight:500}
 #endCard p{font-size:13px;margin:0 0 16px}#endCard button{color:#EEF1EC;border-color:#9FB3BD}
 body.paused #track .head::after{animation-play-state:paused}
 #track .ev::before{content:"";position:absolute;left:3px;top:2px;width:2px;height:14px;background:var(--west)}
@@ -136,20 +145,28 @@ td{padding:7px 0;border-bottom:1px solid rgba(18,38,46,.1)}
 td.n,th.n{text-align:right;white-space:nowrap;padding-right:14px}
 th{padding-right:10px}
 @media(max-width:640px){
-#stage{aspect-ratio:3/4;min-height:0}
+#stage{aspect-ratio:auto;min-height:0}
+#view{position:relative;aspect-ratio:4/5}
+#below{display:block;min-height:122px;padding:12px 14px 0;color:#EEF1EC}
+#below #flash{margin:0;max-width:none}
+#below #flash:not(.on){display:none}
+#below #flash.on{opacity:1;transform:none}
+#below .ph{margin:0;font-size:12px;line-height:1.45;opacity:.55}
+#below:has(#flash.on) .ph{display:none}
+#zoom{right:10px;top:auto;bottom:10px;transform:none}#zoom button{width:38px;height:38px}
 #hint{display:none}
 #hud{padding:12px 14px 28px}
 #date{font-size:24px}
-#flash{max-width:none;margin-top:8px}
 #flash h3{font-size:14px}#flash p{font-size:12px}
-#stats{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;padding:22px 14px 9px}
+#stats{position:static;background:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;padding:10px 14px 12px;border-top:1px solid rgba(255,255,255,.08)}
 #stats b{font-size:17px}
 #night{gap:8px;font-size:11px}#nBar{width:70px}#nTxt{white-space:nowrap}#skip{padding:4px 9px;font-size:11px}
 #stats span{display:block;font-size:10.5px;line-height:1.3}
 #panel{top:auto;bottom:0;left:0;right:0;width:100%;max-height:58%;overflow:auto;border-width:1px 0 0;border-radius:0}
-#stage:has(#panel.on) #stats{opacity:0}
 #panel{z-index:3;background:rgba(10,23,32,.97)}
-#track{height:88px}
+#track{height:88px;margin-top:40px}
+#track .cap{top:-32px;line-height:1.3}
+#track .inc{width:5px;height:5px;margin-left:-2px;top:51px}
 #track .ev{width:18px;height:26px;top:58px;margin-left:-8px}#track .ev::before{left:8px;top:4px;height:18px}#track .ev.hit::before{top:2px;height:22px}
 .city{font-size:10.5px}.cty{font-size:9.5px;letter-spacing:1.8px}.obl{font-size:9px}
 .ctl{gap:6px}
@@ -160,7 +177,8 @@ button.tg{padding:8px 11px}
 .legend{gap:10px 16px}
 td{padding:8px 0}
 }
-@media(hover:none){#hint{display:none}#tip{display:none}}
+@media(hover:none){#hint{display:none}#below .ph .m{display:none}}
+@media(hover:hover){#below .ph .t{display:none}}
 </style>
 </head>
 <body>
@@ -175,12 +193,19 @@ nie odtwarzają rzeczywistych torów ani miejsc trafień. Liczniki pochodzą z s
 <p class="context" id="dataStatus" role="status">Wczytywanie danych…</p>
 
 <div id="stage">
+ <div id="view">
   <div id="gl"></div>
   <div id="lbl"></div>
   <div id="hud"><div id="date">—</div><div id="day">—</div><div id="night"><div id="nBar"><i id="nFill"></i></div><span id="nTxt"></span><button id="skip">Pomiń nalot ▸</button></div><div id="flash"><h3 id="fh"></h3><p id="fp"></p><a id="eventSource" hidden target="_blank" rel="noopener noreferrer">Źródło liczby dla zachodu ↗</a></div></div>
-  <div id="hint">przeciągnij — obrót · kółko — zbliżenie<br>klik obwód — szczegóły · <kbd>spacja</kbd> pauza<br><span id="fresh"></span></div>
+  <div id="hint">przeciągnij — obrót · Ctrl/⌘ + kółko — zbliżenie<br>klik obwód — szczegóły · <kbd>spacja</kbd> pauza<br><span id="fresh"></span></div>
+  <div id="wheelHint" aria-hidden="true">Ctrl + kółko — zbliżenie mapy</div>
+  <div id="zoom"><button data-z="in" aria-label="Przybliż mapę">+</button><button data-z="out" aria-label="Oddal mapę">−</button></div>
   <div id="tip"></div>
   <div id="panel"><button class="x" id="px" aria-label="Zamknij">×</button><div id="pc"></div></div>
+  <div id="endCard" hidden role="status"><button class="x" id="endX" aria-label="Zamknij podsumowanie">×</button><h3>Koniec dostępnych danych</h3><p id="endText"></p><button id="replay">Odtwórz ponownie</button></div>
+  <div id="boot">Budowanie mapy…</div>
+ </div>
+ <div id="below"><p class="ph"><span class="t">Przesuń mapę w bok, żeby ją obrócić; dwoma palcami ją przybliżysz i pochylisz. Dotknij obwodu, szpilki albo lecącego obiektu, żeby zobaczyć szczegóły.</span><span class="m">Przeciągnij mapę, żeby ją obrócić; Ctrl + kółko przybliża. Kliknij obwód albo szpilkę, żeby zobaczyć szczegóły.</span></p></div>
   <div id="stats">
     <div><b id="sRate">—</b><span id="rateLabel">BSP / dzień · średnia miesiąca</span></div>
     <div class="est"><b id="sTot">—</b><span>BSP narastająco · bez rakiet</span></div>
@@ -188,8 +213,6 @@ nie odtwarzają rzeczywistych torów ani miejsc trafień. Liczniki pochodzą z s
     <div class="wz"><b id="sWestCum">0</b><span>na zachód · wpisy ze źródłem liczby</span></div>
     <div class="inc"><b id="sInc">0</b><span>wybranych incydentów poza Ukrainą</span></div>
   </div>
-  <div id="endCard" hidden role="status"><h3>Koniec dostępnych danych</h3><p id="endText"></p><button id="replay">Odtwórz ponownie</button></div>
-  <div id="boot">Budowanie mapy…</div>
 </div>
 
 <div id="track"><div class="cap">BSP w miesiącu · kreskowanie = niepełne dane · znaczniki = wybrane naloty</div><div class="base"></div>
@@ -355,30 +378,46 @@ const EV=[
  {d:"2025-11-19",h:"Tarnopol — 38 zabitych",t:"Ponad 470 dronów i 47 rakiet w skali kraju. Dwa bloki mieszkalne w Tarnopolu, wśród ofiar ośmioro dzieci. W zestawie brak zweryfikowanej liczby obiektów skierowanych na Tarnopol.",west:[],n:"—",nat:{d:470,m:47}},
  {d:"2026-03-24",h:"Lwów w biały dzień",t:"948 dronów w ciągu doby — ówczesny rekord wojny, z tego 556 w fazie dziennej. Dron uderzył w budynek w historycznym centrum Lwowa.",west:[],n:"—",nat:{d:948,m:35}},
  {d:"2026-04-01",h:"Ponad 80 dronów na cały zachód",t:"Po nocnej fali 339 dronów ruszył atak dzienny. Do 13:43 wykryto ponad 80 dronów lecących na Lwów, Tarnopol, Iwano-Frankiwsk, Czerniowce i Zakarpacie.",west:[],n:"—",nat:{d:339,m:0}},
- {d:"2026-07-30",h:"Kijów i Lwów, obiekt spada w Polsce",t:"284 BSP i 74 rakiety, w tym 61 Ch-101 i Kalibrów — według raportu Sił Powietrznych. Główne cele: obwód kijowski i lwowski. O 3:40 polskie radary wykryły obiekt, który zniknął z ekranów; prawdopodobne miejsce upadku — Tarnawa-Kolonia na Lubelszczyźnie. Liczby obiektów w sam obwód lwowski nie podano.",west:[],n:"—",nat:{d:284,m:74}},
+ {d:"2026-07-30",h:"Kijów i Lwów, obiekt spada w Polsce",t:"284 BSP i 74 rakiety, w tym 61 Ch-101 i Kalibrów — według raportu Sił Powietrznych. Główne cele: obwód kijowski i lwowski. Pocisk manewrujący Ch-101 wleciał nad Polskę i spadł koło Tarnawy-Kolonii na Lubelszczyźnie; typ potwierdziła prokuratura. Liczby obiektów w sam obwód lwowski nie podano.",west:[],n:"—",ref:"https://www.dziennikwschodni.pl/artykul/391128,prokuratura-rakieta-ktora-spadla-w-tarnawie-kolonii-zostala-wyprodukowana-w-rosji",nat:{d:284,m:74}},
+ {d:"2026-09-13",h:"Wołyń: dron w lokomotywę 2 km od granicy z Polską",t:"453 BSP w skali kraju według porannego raportu Sił Powietrznych. Dron trafił w lokomotywę pociągu Kijów–Warszawa ok. 2 km od granicy z Polską, a szczątki wywołały pożar stacji paliw i ciężarówek przy przejściu Jahodyn; nikt nie ucierpiał. Celem były też obwody lwowski, tarnopolski i iwano-frankiwski. Liczby obiektów skierowanych na zachód nie podano.",west:[],n:"—",ref:"https://www.5.ua/regiony/rosiia-atakuvala-pasazhyrskyi-potiah-za-2-km-vid-kordonu-z-polshcheiu-ta-azs-bilia-pp-yahodyn-383186.html",nat:{d:453,m:0}},
  {d:"2026-05-13",h:"Główne uderzenie skierowane na zachód",t:"892 drony w dobę. Obwód wołyński naliczył 43 drony w pięć godzin, tarnopolski 23. Zakarpacie — najcięższy nalot na region od początku wojny; Węgry wezwały ambasadora Rosji.",west:[["briansk","luck",43,"d"],["briansk","tarnopol",23,"d"]],n:"66",nat:{d:892,m:0}}
 ];
 EV.sort((a,b)=>a.d<b.d?-1:1);
 const T0=Date.UTC(2022,1,24),T1=Date.parse(DATA_TO)+DAY,SPAN=(T1-T0)/DAY;
 EV.forEach(e=>{const p=e.d.split("-").map(Number);e.ts=Date.UTC(p[0],p[1]-1,p[2]);e.f=(e.ts-T0)/DAY/SPAN;
   e.nv=parseInt(String(e.n).replace(/[^0-9]/g,""))||0;});
-/* obiekty, które spadły lub weszły w przestrzeń innych państw — wybór udokumentowanych przypadków, do rozszerzenia.
+/* obiekty, które spadły lub weszły w przestrzeń innych państw — wybór udokumentowanych przypadków; s = źródło opisu (sprawdzone 1 X 2026).
    k: płyta sąsiada (wysokość znacznika), null = płyta kontynentu */
 const INC=[
- {d:"2022-11-15",n:"Przewodów (Polska)",c:[23.93,50.47],k:"POL",t:"Rakieta spadła na suszarnię zboża, 2 zabitych. Śledztwo wskazało ukraińską rakietę S-300 odpaloną w obronie przed rosyjskim ostrzałem — pierwszy śmiertelny incydent na terytorium NATO."},
- {d:"2022-12-05",n:"Briceni (Mołdawia)",c:[27.1,48.35],k:"MDA",t:"Fragmenty rakiety po rosyjskim ataku na ukraińską energetykę spadły w sadzie koło Briceni. Podobny przypadek w Lardze 14 I 2023."},
- {d:"2023-09-04",n:"Plauru (Rumunia)",c:[29.7,45.3],k:"ROU",t:"Szczątki Shaheda po ataku na port w Izmaile, kilkaset metrów od granicy. We wrześniu 2023 trzykrotnie; Rumunia zbudowała schrony dla mieszkańców delty Dunaju."},
- {d:"2023-12-29",n:"Zamość — przelot (Polska)",c:[23.3,50.7],k:"POL",t:"Rosyjska rakieta manewrująca weszła w polską przestrzeń powietrzną na ok. 3 minuty i zawróciła. Powtórka 24 III 2024 nad Oserdowem, 39 sekund."},
- {d:"2024-07-25",n:"Plauru (Rumunia)",c:[29.65,45.32],k:"ROU",t:"Kolejne fragmenty drona na rumuńskim brzegu Dunaju podczas ataku na Izmaił. 8 IX 2024 dron wleciał 30 km w głąb Rumunii, poderwano F-16."},
- {d:"2024-09-07",n:"Rezekne (Łotwa)",c:[27.3,56.5],k:null,t:"Shahed z ładunkiem wybuchowym rozbił się koło Rezekne po przelocie przez Białoruś, ok. 150 km w głąb Łotwy."},
- {d:"2025-02-13",n:"południe Mołdawii",c:[28.8,46.5],k:"MDA",t:"Dwa rosyjskie drony spadły w Mołdawii podczas nocnego ataku na Odessę; Kiszyniów wezwał ambasadora Rosji."},
- {d:"2025-07-28",n:"Litwa — Gerbera z Białorusi",c:[25.4,54.6],k:null,t:"Dron-wabik Gerbera z ładunkiem wybuchowym wleciał z Białorusi i rozbił się na poligonie; drugi taki przypadek w lipcu 2025."},
- {d:"2025-08-20",n:"Osiny (Polska)",c:[22.0,51.6],k:"POL",t:"Dron typu Gerbera eksplodował na polu kukurydzy koło Łukowa, wybijając szyby w domach. Pierwsza eksplozja rosyjskiego drona w Polsce."},
- {d:"2025-09-10",n:"Wyryki (Polska) — ok. 20 dronów",c:[23.2,51.6],k:"POL",t:"Około 20 rosyjskich dronów weszło do Polski, część z Białorusi. Pierwsze zestrzelenia przez F-35 i F-16 nad terytorium NATO; uszkodzony dom w Wyrykach. Polska uruchomiła art. 4 Traktatu."},
- {d:"2025-09-13",n:"Chilia Veche (Rumunia)",c:[29.3,45.4],k:"ROU",t:"Geran wleciał ok. 10 km w głąb Rumunii, śledzony przez F-16 przez 50 minut. Kilka dni po incydencie w Polsce."},
- {d:"2025-11-11",n:"Grindu (Rumunia)",c:[28.2,45.4],k:"ROU",t:"Dron uderzył w dom w okręgu Tulcea podczas ataku na Izmaił; bez ofiar."},
- {d:"2026-07-30",n:"Tarnawa-Kolonia (Polska) — prawdopodobnie",c:[22.6,50.65],k:"POL",t:"Podczas nalotu na Kijów i Lwów polskie radary wykryły obiekt, który zniknął z ekranów; prawdopodobne miejsce upadku na Lubelszczyźnie."}
+ {d:"2022-11-15",n:"Przewodów (Polska)",c:[23.92,50.47],k:"POL",t:"Pocisk spadł na teren suszarni zboża; zginęło dwóch mężczyzn. Według polskiej prokuratury była to ukraińska rakieta przeciwlotnicza S-300, która podczas rosyjskiego ataku rakietowego wymknęła się spod kontroli.",s:"https://kyivindependent.com/media-polish-investigation-concludes-ukrainian-air-defense-missile-fell-on-polish-territory-last-year/"},
+ {d:"2022-12-05",n:"Briceni (Mołdawia)",c:[27.08,48.36],k:"MDA",t:"Podczas rosyjskiego ataku rakietowego na Ukrainę w Briceni spadły szczątki pocisku, według MSW Mołdawii rakiety przeciwlotniczej S-300. 14 I 2023 szczątki rakiety znaleziono też koło wsi Larga.",s:"https://www.rferl.org/a/moldova-russian-missile-controlled-detonations/32224231.html"},
+ {d:"2022-12-16",n:"las koło Bydgoszczy (Polska)",c:[18.0,53.05],k:"POL",t:"Rosyjski pocisk manewrujący Ch-55 wleciał nad Polskę podczas zmasowanego ataku na Ukrainę i spadł w lesie koło Bydgoszczy. Szczątki znalazła przypadkowa osoba dopiero 27 IV 2023.",s:"https://notesfrompoland.com/2023/05/12/questions-after-missile-landed-in-poland-in-december-but-was-not-found-until-april/"},
+ {d:"2023-09-04",n:"Plauru (Rumunia)",c:[28.83,45.32],k:"ROU",t:"Po nocnym ataku rosyjskich dronów na port w Izmaile szczątki drona spadły koło Plauru, ok. 300 m od Izmaiłu po drugiej stronie Dunaju. We wrześniu 2023 Rumunia znalazła je trzykrotnie; w Plauru zbudowano schrony.",s:"https://www.rferl.org/a/romania-host-village-air-raid-shelters-russia-ukraine/32596621.html"},
+ {d:"2023-12-29",n:"Lubelszczyzna — przelot pocisku (Polska)",c:[23.59,50.55],k:"POL",t:"Rosyjski pocisk manewrujący wleciał od strony Ukrainy nad Lubelszczyznę, w niecałe 3 minuty przeleciał ok. 40 km i opuścił Polskę. 24 III 2024 kolejny pocisk był nad Polską 39 s w rejonie Oserdowa.",s:"https://notesfrompoland.com/2023/12/29/missile-that-entered-polish-airspace-likely-russian-says-warsaw/"},
+ {d:"2024-07-25",n:"Plauru (Rumunia)",c:[28.85,45.30],k:"ROU",t:"W nocy 24/25 VII 2024, podczas ataku na ukraińskie porty nad Dunajem, szczątki rosyjskiego drona Geran spadły koło Plauru. 8 IX 2024 kolejny dron wleciał nad Rumunię; poderwano F-16, szczątki znaleziono koło Peripravy.",s:"https://english.mapn.ro/cpresa/6316_press-release"},
+ {d:"2024-09-07",n:"Gaigalava (Łotwa)",c:[27.07,56.76],k:null,t:"Rosyjski dron typu Shahed z ładunkiem wybuchowym wleciał z Białorusi i rozbił się w gminie Gaigalava (okręg Rzeżyca), ok. 85 km od granicy z Białorusią. Ładunek zniszczono na miejscu.",s:"https://eng.lsm.lv/article/society/defense/09.09.2024-russian-drone-that-fell-in-latvia-had-explosives-attached.a568090/"},
+ {d:"2025-02-13",n:"Ciumai i Ceadîr-Lunga (Mołdawia)",c:[28.83,46.05],k:"MDA",t:"W nocy 12/13 II 2025 rosyjskie drony atakujące południe Ukrainy naruszyły przestrzeń Mołdawii; dwa spadły i eksplodowały koło Ciumai i Ceadîr-Lunga. Kiszyniów wezwał ambasadora Rosji.",s:"https://mfa.gov.md/en/content/mfa-strongly-condemns-violation-republic-moldovas-airspace-and-summons-approved-ambassador"},
+ {d:"2025-07-28",n:"poligon Gaižiūnai (Litwa)",c:[24.30,54.97],k:null,t:"Dron, wstępnie typu Gerbera, z ok. 2 kg materiału wybuchowego wleciał z Białorusi i spadł na poligonie Gaižiūnai (rejon Jonawa); znaleziono go 1 VIII. Drugi taki incydent w lipcu, po 10 VII.",s:"https://www.lrt.lt/en/news-in-english/19/2634744/explosive-device-found-in-drone-from-belarus-that-crashed-in-lithuania"},
+ {d:"2025-08-20",n:"Osiny (Polska)",c:[22.09,51.87],k:"POL",t:"W nocy 19/20 VIII 2025 dron wojskowy, według MON rosyjski, spadł i eksplodował na polu kukurydzy w Osinach; w kilku domach wypadły szyby. Nikt nie ucierpiał; według prokuratury najpewniej nadleciał z Białorusi.",s:"https://notesfrompoland.com/2025/08/21/poland-to-lodge-diplomatic-protest-after-russian-drone-crash-on-its-territory/"},
+ {d:"2025-09-10",n:"Wyryki-Wola (Polska) — 19 naruszeń",c:[23.36,51.56],k:"POL",t:"W nocy 9/10 IX 2025 odnotowano 19 naruszeń przestrzeni przez rosyjskie drony, część z Białorusi; kilka zestrzeliły głównie holenderskie F-35. Według prokuratury dom w Wyrykach-Woli trafiła rakieta AIM-9X z F-35. Polska uruchomiła art. 4 NATO.",s:"https://polskieradio24.pl/polska/rakieta-wojskowa-uderzyla-w-dom-w-wyrykach-woli-jest-decyzja-prokuratury"},
+ {d:"2025-09-13",n:"Chilia Veche (Rumunia)",c:[29.28,45.42],k:"ROU",t:"Rosyjski dron Geran wleciał ok. 10 km nad Rumunię koło Chilia Veche. Dwa F-16 śledziły go ok. 50 min i miały zgodę na zestrzelenie, ale nie strzelały; dron wrócił nad Ukrainę.",s:"https://kyivindependent.com/romania-was-close-to-downing-russian-drone-before-it-returned-to-ukraine-minister-says/"},
+ {d:"2025-11-11",n:"Grindu (Rumunia)",c:[28.22,45.40],k:"ROU",t:"W nocy 10/11 XI 2025, podczas rosyjskiego ataku na ukraińskie porty nad Dunajem, dron spadł koło Grindu (okręg Tulcza), ok. 5 km od granicy. Bez ofiar i szkód.",s:"https://www.rador.ro/2025/11/11/posibile-fragmente-de-drona-cazute-in-judetul-tulcea-la-aproximativ-5-km-de-frontiera-mapn/"},
+ {d:"2025-11-25",n:"Cuhureștii de Jos (Mołdawia)",c:[28.58,47.92],k:"MDA",t:"Rosyjski dron-wabik typu Gerbera spadł na dach domu w rejonie Florești; nie miał ładunku wybuchowego.",s:"https://ziar.md/drona-aterizata-pe-o-casa-din-raionul-floresti-este-tip-gerbera-de-fabricatie-ruseasca-nu-avea-incarcatura-exploziva/"},
+ {d:"2025-11-25",n:"Puiești (Rumunia)",c:[27.50,46.42],k:"ROU",t:"Dron bez ładunku wybuchowego rozbił się w ogrodzie w Puiești (okręg Vaslui); F-16 miały zgodę na zestrzelenie, ale nie strzelały.",s:"https://hotnews.ro/tinte-aeriene-detectate-in-spatiul-aerian-al-romaniei-aeronave-de-lupta-au-fost-ridicate-de-la-sol-mesaj-ro-alert-pentru-populatia-din-galati-2115690"},
+ {d:"2026-01-22",n:"Crocmaz (Mołdawia)",c:[29.99,46.46],k:"MDA",t:"W ogrodzie znaleziono niewybuchły dron Geran-2 z ok. 50 kg materiału wybuchowego; saperzy armii go rozbroili i zniszczyli.",s:"https://www.moldpres.md/rom/societate/genistii-armatei-nationale-au-dezamorsat-drona-depistata-in-raionul-stefan-voda-ministrul-apararii-anatolie-nosatii-aceasta-a-fost-transportata-intr-un-loc-sigur-si-nimicita"},
+ {d:"2026-04-25",n:"Gałacz (Rumunia)",c:[28.06,45.43],k:"ROU",t:"Szczątki rosyjskiego drona uszkodziły budynek gospodarczy i słup energetyczny w dzielnicy Bariera Traian. To pierwsze szkody w mieniu w Rumunii.",s:"https://www.mapn.ro/cpresa/19218_Informa%C8%9Bie-de-presa"},
+ {d:"2026-05-29",n:"Gałacz, blok mieszkalny (Rumunia)",c:[28.04,45.45],k:"ROU",t:"Rosyjski dron Geran-2 uderzył w dach bloku mieszkalnego; cały ładunek wybuchł, dwie osoby zostały ranne.",s:"https://www.mapn.ro/cpresa/19272_Informa%C8%9Bie-de-presa"},
+ {d:"2026-07-13",n:"Copanca (Mołdawia)",c:[29.63,46.72],k:"MDA",t:"Dron Geran-2 z ok. 40 kg ładunku rozbił się ok. 50 m od domu i spłonął; ambasador Rosji otrzymał notę protestacyjną.",s:"https://protv.md/politic/ambasadorul-rus-oleg-ozerov-convocat-la-mae-dupa-ce-o-drona-a-cazut-la-causeni---2762860.html"},
+ {d:"2026-07-24",n:"Padina (Rumunia) — pierwsze zestrzelenie",c:[27.12,44.83],k:"ROU",t:"Rumuński F-16 po raz pierwszy zestrzelił drona nad terytorium kraju; szczątki drona i pocisku spadły w rejonie Padiny (Buzău) i Tătaru (Braiła). W dwa kolejne dni F-16 strąciły jeszcze dwa drony, a Bukareszt wezwał ambasadora Rosji.",s:"https://www.mapn.ro/cpresa/19321_informa%C8%9Bie-de-presa"},
+ {d:"2026-07-30",n:"Tarnawa-Kolonia (Polska)",c:[22.65,50.85],k:"POL",t:"Podczas zmasowanego ataku na Ukrainę rosyjski pocisk manewrujący Ch-101 wleciał nad Polskę i spadł na pole koło Tarnawy-Kolonii (powiat biłgorajski), tworząc krater o średnicy ok. 10 m. Typ potwierdziła prokuratura.",s:"https://www.dziennikwschodni.pl/artykul/391128,prokuratura-rakieta-ktora-spadla-w-tarnawie-kolonii-zostala-wyprodukowana-w-rosji"},
+ {d:"2026-08-09",n:"Crocmaz (Mołdawia)",c:[29.97,46.43],k:"MDA",t:"Dron rozbił się przy granicy z obwodem odeskim; szczątki uszkodziły kilka domów, nikt nie został ranny. Mołdawia odwołała ambasadora z Moskwy na konsultacje.",s:"https://www.themoscowtimes.com/2026/08/10/moldova-recalls-ambassador-in-moscow-after-drone-crashes-near-border-with-ukraine-a93449"},
+ {d:"2026-08-16",n:"Băleni–Cudalbi (Rumunia)",c:[27.85,45.82],k:"ROU",t:"Hiszpański F-18 z misji NATO zestrzelił drona, który wleciał nad Rumunię od strony Mołdawii, ok. 24 km na północ od Gałacza.",s:"https://www.mapn.ro/cpresa/19351_Informa%C8%9Bie-de-presa"},
+ {d:"2026-09-14",n:"Rusinowo, plaża (Polska)",c:[16.52,54.51],k:"POL",t:"W morzu przy plaży w Rusinowie koło Jarosławca znaleziono rosyjskiego drona Gerbera-2 z głowicą odłamkowo-burzącą (ok. 4 kg materiału wybuchowego). Głowicę zdetonowano na plaży.",s:"https://www.bankier.pl/wiadomosc/Dron-z-Rusinowa-byl-uzbrojony-Prokuratura-potwierdza-To-rosyjska-Gerbera-2-z-glowica-bojowa-9197813.html"},
+ {d:"2026-09-15",n:"Pratkūnai (Litwa)",c:[24.30,54.80],k:null,t:"Włoskie Eurofightery z bazy NATO w Szawlach zestrzeliły drona z ładunkiem wybuchowym, który wleciał najpewniej z Białorusi i był nad Litwą ok. pół godziny.",s:"https://www.lrt.lt/en/news-in-english/19/3053032/nato-jets-shoot-down-drone-that-entered-lithuanian-airspace"},
+ {d:"2026-09-24",n:"Cotiujeni (Mołdawia)",c:[26.94,48.35],k:"MDA",t:"Dron z oznaczeniami „Герань 4” uderzył w drzewa i eksplodował ok. 10 m nad ziemią, ok. 1,7 km od granicy; nikt nie ucierpiał.",s:"https://radiomoldova.md/p/85815/fragmente-ale-unui-aparat-de-zbor-cu-marcaje-geran-4--depistate-in-urma-exploziei-de-la-cotiujeni"},
+ {d:"2026-09-29",n:"Gropeni (Rumunia)",c:[27.88,45.07],k:"ROU",t:"Dron spadł na pole koło Gropeni (Braiła); jego ładunek wybuchł przy uderzeniu, pożar objął niewielki obszar. Komunikat MON nie podaje pochodzenia drona.",s:"https://www.mapn.ro/cpresa/19420_Update---Informa%C8%9Bie-de-presa"}
 ];
+INC.sort((a,b)=>a.d<b.d?-1:1);
 INC.forEach(c=>{const p=c.d.split("-").map(Number);c.f=(Date.UTC(p[0],p[1]-1,p[2])-T0)/DAY/SPAN;});
 let lastInc=-1;
 const MON=["stycznia","lutego","marca","kwietnia","maja","czerwca","lipca","sierpnia","września","października","listopada","grudnia"];
@@ -451,7 +490,8 @@ function makeWaterNormal(){const N=256,c=document.createElement("canvas");c.widt
   g.putImageData(img,0,0);const t=new THREE.CanvasTexture(c);t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(16,16);return t;}
 
 /* ══════════════ 4. SCENA ══════════════ */
-const stage=document.getElementById("stage"),holder=document.getElementById("gl");
+const stage=document.getElementById("view"),holder=document.getElementById("gl");   /* obszar mapy: rozmiar płótna, wskaźnik, etykiety */
+const mqNarrow=matchMedia("(max-width:640px)");
 const small=innerWidth<760;let lblReset=false; /* wymusza ponowny pomiar szerokości etykiet */
 let renderer;
 try{renderer=new THREE.WebGLRenderer({antialias:!small,powerPreference:"high-performance"});}
@@ -691,14 +731,26 @@ buildComposer();
 const ctr=new OrbitControls(camera,renderer.domElement);ctr.enableDamping=true;ctr.dampingFactor=.07;ctr.rotateSpeed=.55;
 ctr.minDistance=18;ctr.maxDistance=200;ctr.maxPolarAngle=1.46;ctr.autoRotate=true;ctr.autoRotateSpeed=.25;ctr.target.set(2,0,0);
 ["pointerdown","wheel","touchstart"].forEach(t=>renderer.domElement.addEventListener(t,()=>{ctr.autoRotate=false;tween=null;},{passive:true}));
+/* dotyk: jeden palec przewija stronę w pionie i obraca mapę w poziomie, dwa palce przybliżają i pochylają */
+renderer.domElement.style.touchAction="pan-y";ctr.touches.TWO=THREE.TOUCH.DOLLY_ROTATE;
+/* kółko przewija stronę; mapę przybliża Ctrl/⌘ + kółko albo gest szczypania na gładziku (przychodzi z ctrlKey) */
+const wheelHint=document.getElementById("wheelHint");let wheelT=0;
+if(/Mac|iPhone|iPad/.test(navigator.platform))wheelHint.textContent="⌘ + kółko albo szczypanie — zbliżenie mapy";
+stage.addEventListener("wheel",e=>{if(e.ctrlKey||e.metaKey)return;e.stopPropagation();
+  wheelHint.classList.add("on");clearTimeout(wheelT);wheelT=setTimeout(()=>wheelHint.classList.remove("on"),1300);},{capture:true,passive:true});
 
 /* płynny przelot kamery */
 let tween=null;
 const VIEWS={all:[[-27,32,48],[2,0,0]],west:[[-40,18,22],[-22,0,-2]],front:[[36,20,26],[20,0,2]],top:[[2,70,15],[2,0,0]]};
 /* ekran pionowy: kamera wyżej (o ok. 25°), żeby kraj wypełniał kadr zamiast horyzontu */
-if(innerHeight>innerWidth){for(const k in VIEWS){if(k==="top")continue;const [p,t]=VIEWS[k],zoom=k==="all"?1.4:1,d=[(p[0]-t[0])*zoom,(p[1]-t[1])*zoom,(p[2]-t[2])*zoom],h=Math.hypot(d[0],d[2]),L=Math.hypot(h,d[1]),el=Math.atan2(d[1],h)+.45,nh=L*Math.cos(el);
+if(innerHeight>innerWidth){for(const k in VIEWS){if(k==="top")continue;let [p,t]=VIEWS[k],zoom=k==="all"?1.22:1,d=[(p[0]-t[0])*zoom,(p[1]-t[1])*zoom,(p[2]-t[2])*zoom],h=Math.hypot(d[0],d[2]),L=Math.hypot(h,d[1]),el=Math.atan2(d[1],h)+.45,nh=L*Math.cos(el);
+  if(k==="all")t=[.5,0,0];   /* środek kraju, nie przesunięty na wschód */
   VIEWS[k]=[[t[0]+d[0]/h*nh,t[1]+L*Math.sin(el),t[2]+d[2]/h*nh],t];}camera.position.set(...VIEWS.all[0]);}
 function flyTo(v){const [p,t]=VIEWS[v];tween={p0:camera.position.clone(),p1:new THREE.Vector3(...p),t0:ctr.target.clone(),t1:new THREE.Vector3(...t),k:0};ctr.autoRotate=false;}
+/* przyciski i klawisze +/−: alternatywa dla kółka i gestu dwoma palcami */
+function zoomBy(f){const dir=camera.position.clone().sub(ctr.target),d=THREE.MathUtils.clamp(dir.length()*f,ctr.minDistance,ctr.maxDistance);
+  tween={p0:camera.position.clone(),p1:ctr.target.clone().add(dir.setLength(d)),t0:ctr.target.clone(),t1:ctr.target.clone(),k:0};ctr.autoRotate=false;}
+document.querySelectorAll("#zoom button").forEach(b=>b.onclick=()=>zoomBy(b.dataset.z==="in"?.72:1.38));
 function flyToPoint(x,z,dist){tween={p0:camera.position.clone(),p1:new THREE.Vector3(x-dist*.55,dist*.75,z+dist*.7),t0:ctr.target.clone(),t1:new THREE.Vector3(x,0,z),k:0};ctr.autoRotate=false;}
 function stepTween(dt){if(!tween)return;tween.k=Math.min(1,tween.k+dt/1.3);const e=1-Math.pow(1-tween.k,3);
   camera.position.lerpVectors(tween.p0,tween.p1,e);ctr.target.lerpVectors(tween.t0,tween.t1,e);if(tween.k>=1)tween=null;}
@@ -715,26 +767,30 @@ SEAL.forEach(s=>{const d=document.createElement("div");d.className="cty sea";d.t
 const ray=new THREE.Raycaster();
 const ptr=new THREE.Vector2(),tip=document.getElementById("tip"),ground=new THREE.Plane(new THREE.Vector3(0,1,0),0),hitP=new THREE.Vector3();
 let hoverObl=-1,selObl=-1,rayT=0,mouse={x:0,y:0,in:false};
-function setPtr(e){const r=stage.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;mouse.in=true;
+function setPtr(e){const r=stage.getBoundingClientRect();mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;mouse.in=e.pointerType!=="touch";
   ptr.x=(mouse.x/r.width)*2-1;ptr.y=-(mouse.y/r.height)*2+1;}
 renderer.domElement.addEventListener("pointermove",setPtr);
-renderer.domElement.addEventListener("pointerleave",()=>{mouse.in=false;tip.classList.remove("on");setHover(-1);});
+renderer.domElement.addEventListener("pointerleave",e=>{if(e.pointerType==="touch")return;mouse.in=false;tip.classList.remove("on");setHover(-1);});
+/* dymek nie wychodzi poza mapę: przy prawej i dolnej krawędzi przesuwa się do środka */
+function placeTip(){const w=stage.clientWidth,h=stage.clientHeight;
+  tip.style.left=Math.max(4,Math.min(mouse.x,w-tip.offsetWidth-18))+"px";tip.style.top=Math.max(4,Math.min(mouse.y,h-tip.offsetHeight-18))+"px";}
+let tipT=0;
 function setHover(i){if(i===hoverObl)return;if(hoverObl>=0&&hoverObl!==selObl)oblLines[hoverObl].visible=false;hoverObl=i;
   if(i>=0&&i!==selObl){oblLines[i].visible=layers.obl;oblLines[i].material.color.set(0xFFFFFF);oblLines[i].material.opacity=.7;}}
 function fmtT(h){const m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min";}
 function pick(){if(!mouse.in)return;ray.setFromCamera(ptr,camera);
   const ih=ray.intersectObjects(incHit.filter((_,i)=>incM[i].g.visible),false);if(ih.length){const c=INC[ih[0].object.userData.i];
     tip.innerHTML=`<b>${c.n}</b><span class="k">${c.d.split("-").reverse().join(".")} · obiekt poza Ukrainą</span><br>${c.t}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
-    tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");setHover(-1);return;}
+    placeTip();tip.classList.add("on");setHover(-1);return "inc";}
   const hits=ray.intersectObjects([drones,missiles],false);
   if(hits.length){const h=hits[0],P=h.object===drones?PD:PM,p=P.pool[h.instanceId];
     if(p&&p.on){const km=p.r.km*(1-Math.min(p.t,1)),hrs=km/(p.r.drone?185:800);
       tip.innerHTML=`<b>${p.kind==="m"?"Rakieta · model":"BSP · model"}</b><span class="k">kierunek ilustracyjny:</span> ${CITYN[p.r.city]} <span class="k">·</span> ${SRCN[p.r.src]}<br><span class="k">do celu:</span> ${Math.round(km)} km <span class="k">·</span> ${fmtT(hrs)}<br><span class="k">1 sylwetka = ${p.evt?p.weight+(p.weight===1?" obiekt w modelu":" obiektów w modelu"):"umowny strumień"}; czas orientacyjny</span>`;
-      tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");setHover(-1);return;}}
+      placeTip();tip.classList.add("on");setHover(-1);return "obj";}}
   if(ray.ray.intersectPlane(ground,hitP)){const lon=lonOf(hitP.x),lat=latOf(hitP.z),i=inPoly(lon,lat)?oblastAt(lon,lat):-1;setHover(i);
     if(i>=0){const o=GEO.obl[i],n=oblHits[i].filter(h=>h[0]>day-90).length;
       tip.innerHTML=`<b>${o.city?o.n:"obwód "+o.n}</b>${o.w?'<span class="k">zachód Ukrainy</span><br>':""}<span class="k">zakończeń tras w modelu, ostatnie 90 dni:</span> ${n}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
-      tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");return;}}
+      placeTip();tip.classList.add("on");return "obl";}}
   tip.classList.remove("on");}
 
 /* klik: obwód → panel */
@@ -742,13 +798,17 @@ const panel=document.getElementById("panel"),pc=document.getElementById("pc");
 let downAt=null;
 renderer.domElement.addEventListener("pointerdown",e=>{downAt=[e.clientX,e.clientY];setPtr(e);});
 renderer.domElement.addEventListener("pointerup",e=>{if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>5){downAt=null;return;}downAt=null;
+  if(e.pointerType==="touch"){mouse.in=true;const k=pick();mouse.in=false;clearTimeout(tipT);
+    if(k==="obj"){tipT=setTimeout(()=>tip.classList.remove("on"),4000);return;}
+    tip.classList.remove("on");setHover(-1);}
   ray.setFromCamera(ptr,camera);const ih=ray.intersectObjects(incHit.filter((_,i)=>incM[i].g.visible),false);if(ih.length){selectInc(ih[0].object.userData.i);return;}
   if(!ray.ray.intersectPlane(ground,hitP))return;const lon=lonOf(hitP.x),lat=latOf(hitP.z);
   const i=inPoly(lon,lat)?oblastAt(lon,lat):-1;if(i>=0)selectObl(i);else closePanel();});
 function selectInc(i){closePanel();const c=INC[i];
-  pc.innerHTML=`<h3>${c.n}</h3><div class="sub">${c.d.split("-").reverse().join(".")} · obiekt poza Ukrainą</div><p style="margin:8px 0 0;font-size:12.5px;line-height:1.5">${c.t}</p>`;
+  pc.innerHTML=`<h3>${c.n}</h3><div class="sub">${c.d.split("-").reverse().join(".")} · obiekt poza Ukrainą</div><p style="margin:8px 0 0;font-size:12.5px;line-height:1.5">${c.t}</p>${c.s?`<p style="margin:8px 0 0;font-size:12px"><a href="${c.s}" target="_blank" rel="noopener noreferrer" style="color:inherit">Źródło ↗</a></p>`:""}`;
   panel.classList.add("on");flyToPoint(px(c.c[0]),pz(c.c[1]),26);}
 document.getElementById("px").onclick=closePanel;
+document.getElementById("endX").onclick=()=>{document.getElementById("endCard").hidden=true;};
 function closePanel(){if(selObl>=0)oblLines[selObl].visible=false;selObl=-1;panel.classList.remove("on");}
 function selectObl(i){if(selObl>=0)oblLines[selObl].visible=false;selObl=i;const o=GEO.obl[i],l=oblLines[i];l.visible=layers.obl;l.material.color.set(0xFFB070);l.material.opacity=1;
   const rows=[["zakończeń tras w modelu, ostatnie 90 dni",oblHits[i].filter(h=>h[0]>day-90).length],["od ostatniego przewinięcia",oblHits[i].length]];
@@ -811,7 +871,7 @@ function seekTo(d,replayEvents=false){day=Math.max(0,Math.min(SPAN,d));ending=fa
   if(day>=SPAN)finishPlayback();else if(replayEvents&&lastEv>=0&&Math.abs(day-EV[lastEv].f*SPAN)<1e-7)startNight(lastEv);
   updateHUD();}
 function announceEvent(e){fh.textContent=e.h;fp.textContent=e.t+(e.source?"":" Liczba dla zachodu bez zweryfikowanego źródła w tym zestawie; nie wchodzi do sumy ze źródeł.");fl.classList.add("on");
-  const a=document.getElementById("eventSource");a.hidden=!e.source;if(e.source)a.href=e.source;
+  const a=document.getElementById("eventSource"),u=e.source||e.ref;a.hidden=!u;if(u){a.href=u;a.textContent=e.source?"Źródło liczby dla zachodu ↗":"Źródło opisu ↗";}
   clearTimeout(startNight._t);startNight._t=setTimeout(()=>fl.classList.remove("on"),12000);}
 function startNight(i){const e=EV[i];clearTransient();lastEv=i;
   const salvo=buildSalvo(e,makeRoute,mainRoutes,mainRoutesM);queue=salvo.queue;nightHit=0;nightInt=0;
@@ -823,9 +883,13 @@ function finishPlayback(){day=SPAN;ending=false;finished=true;playing=false;ctr.
   document.getElementById("endText").textContent="Dane do "+DATA_TO.split("-").reverse().join(".")+" · ≈ "+nf.format(Math.round(cumTo(SPAN)))+" BSP w serii. To suma raportów i wcześniejszych szacunków, bez rakiet.";
   syncPlayButton();}
 function syncPlayButton(){pb.textContent=finished?"Odtwórz ponownie":playing?"Pauza":"Odtwórz";pb.setAttribute("aria-pressed",String(playing));}
+/* telefon: opis nalotu pod mapą, nie na niej */
+const flashEl=document.getElementById("flash"),hudEl=document.getElementById("hud"),belowEl=document.getElementById("below");
+function placeFlash(){if(mqNarrow.matches)belowEl.prepend(flashEl);else hudEl.appendChild(flashEl);}
+mqNarrow.addEventListener("change",placeFlash);placeFlash();
 function updateHUD(){cum=cumTo(day);const t=new Date(displayTime()),key=t.toISOString().slice(0,10);
   eDate.textContent=t.getUTCDate()+" "+MON[t.getUTCMonth()]+" "+t.getUTCFullYear();
-  eDay.textContent=night?"model nalotu · 1 s ≈ "+HRATE().toFixed(2).replace(".",",")+" h · "+(night.westN?"zachód: "+nightHit+" / "+night.westN+" tras zakończonych · "+nightInt+" przechwyceń w modelu":"zachód: brak liczby obiektów w zestawie")
+  eDay.textContent=night?"model nalotu · 1 s ≈ "+HRATE().toFixed(2).replace(".",",")+" h · "+(night.westN?(mqNarrow.matches?"zachód "+nightHit+"/"+night.westN+(nightInt?" · przechwyceń "+nightInt:""):"zachód: "+nightHit+" / "+night.westN+" tras zakończonych · "+nightInt+" przechwyceń w modelu"):"zachód: brak liczby w zestawie")
     :finished?"Koniec dostępnych danych — możesz przewinąć lub odtworzyć ponownie"
     :ending?"Koniec osi czasu · kończenie ostatnich lotów"
     :"dzień "+nf.format(Math.floor(day)+1)+" inwazji · 1 s ≈ "+(speed*14)+" dni · trasy ilustracyjne";
@@ -865,10 +929,11 @@ function setSpeed(s){speed=s;document.querySelectorAll(".spd").forEach(x=>x.clas
 const qb=document.getElementById("quality");qb.textContent="Jakość: "+(hiQ?"wysoka":"oszczędna");qb.onclick=()=>{hiQ=!hiQ;qb.textContent="Jakość: "+(hiQ?"wysoka":"oszczędna");renderer.setPixelRatio(Math.min(devicePixelRatio,hiQ?2:1));buildComposer();};
 addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="BUTTON")return;
   if(e.code==="Space"){e.preventDefault();togglePlay();}else if(e.key==="ArrowRight"){seekTo(day+30,true);}else if(e.key==="ArrowLeft"){seekTo(day-30,true);}
-  else if(e.key==="1")setSpeed(1);else if(e.key==="2")setSpeed(3);else if(e.key==="3")setSpeed(8);else if(e.key==="Escape")closePanel();});
+  else if(e.key==="1")setSpeed(1);else if(e.key==="2")setSpeed(3);else if(e.key==="3")setSpeed(8);else if(e.key==="Escape")closePanel();
+  else if(e.key==="+"||e.key==="=")zoomBy(.72);else if(e.key==="-"||e.key==="_")zoomBy(1.38);});
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)return;lblReset=true;renderer.setSize(w,h,false);camera.aspect=w/h;
   /* pionowy ekran: poszerz pole widzenia, żeby kraj mieścił się w kadrze */
-  camera.fov=Math.max(38,Math.min(58,38*Math.sqrt((16/9)/camera.aspect)));camera.updateProjectionMatrix();composer.setSize(w,h);if(bloom)bloom.setSize(w,h);lineMats.forEach(m=>m.resolution.set(w,h));}
+  camera.fov=Math.max(38,Math.min(48,38*Math.sqrt((16/9)/camera.aspect)));camera.updateProjectionMatrix();composer.setSize(w,h);if(bloom)bloom.setSize(w,h);lineMats.forEach(m=>m.resolution.set(w,h));}
 addEventListener("resize",resize);if(document.fonts)document.fonts.ready.then(()=>{lblReset=true;});
 
 const proj=new THREE.Vector3();let last=performance.now();

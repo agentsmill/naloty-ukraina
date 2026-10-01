@@ -65,3 +65,16 @@ i nocne. Nie wyprowadzamy z tej serii odsetka trafień na zachód ani skuteczno�
 Testy Node i Python sprawdzają reguły obliczeń, przejścia stanu odtwarzania i regresje parsera.
 Kontrola w przeglądarce obejmuje pauzę, powtórkę, przewijanie, źródła, koniec odtwarzania,
 widok telefonu oraz fallback przy niedostępnym pliku danych.
+
+## Aktualizacja 1 października 2026
+
+- Ten przegląd czekał niezacommitowany, a bot dopisywał dane starym parserem. Dni 18–30 IX
+  i 1 X pobrano ponownie nowym parserem; wszystkie 50 sprawdzonych dni odtworzyło się bez zmian BSP.
+- Parser liczy liczebniki słowne rakiet i bierze przechwycone rakiety jako dolne ograniczenie.
+  Zmieniło to wyłącznie pola rakietowe w 10 dniach; każdą zmianę porównano z komunikatem.
+- Pobieranie ponawia błędy sieci i puste strony; przy limicie stron skrypt ostrzega zamiast milczeć.
+- Katalog incydentów poza Ukrainą ma teraz źródło przy każdym wpisie. Poprawki i nowe wpisy opisuje README.
+- Dodano wpis 13 IX 2026: dron w lokomotywę pociągu Kijów–Warszawa ok. 2 km od granicy z Polską.
+  Bez liczby obiektów dla zachodu, bo żadne źródło jej nie podało.
+- Interakcja: kółko i jeden palec przewijają stronę zamiast blokować ją nad mapą; zbliżenie przez
+  Ctrl/⌘ + kółko, dwa palce albo przyciski. Na telefonie opis i liczniki są pod mapą, kamera bliżej.

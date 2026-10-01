@@ -32,7 +32,10 @@ Nie losujemy skuteczności obrony na podstawie arbitralnej średniej krajowej.
   wartości 2629, 3904, 4198, 2422, 4003, 5438 i 6297, razem **28 891**.
   VIII 2025 – VII 2026 daje **66 994** (wcześniej błędnie wpisano 62 994).
 - Od VIII 2026: suma **porannych** raportów, a nie pełnych dób. Sierpień: **4620 BSP**;
-  1–17 września: **2842 BSP** w sprawdzonym pliku. Skrypt aktualizuje kolejne dni.
+  wrzesień: **5217 BSP** z 30 raportów. Dane sięgają raportu z 1 X 2026; skrypt dopisuje kolejne dni.
+- Liczby rakiet zapisane słownie („двома протикорабельними ракетами”) są liczone. Przechwycone
+  rakiety podnoszą `msl_min`, gdy opis ataku podaje typy bez liczby (np. 24 IX: co najmniej 7).
+  Liczba w wyniku równa sumie pozostałych („55 ракет: 1 + 54”) jest traktowana jako suma, nie kolejna grupa.
 - Raport z 12 IX 2026 wcześniej został zastąpiony większym raportem dziennym (410 BSP).
   Seria poranna zawiera teraz właściwy komunikat 77891 (129 BSP); nie oznacza to,
   że tego dnia użyto tylko 129 BSP. Osobne ataki dzienne nie wchodzą do tej serii.
@@ -57,6 +60,32 @@ Nie losujemy skuteczności obrony na podstawie arbitralnej średniej krajowej.
 - [Siły Powietrzne, 6 VII 2023](https://t.me/kpszsu/3108): 10 Kalibrów, 7 przechwyceń.
 - [Administracja lwowska, 5 X 2025](https://t.me/kozytskyy_maksym_official/25016): około 163 cele w obszarze „Zachód”.
 
+Źródła sprawdzone 1 X 2026:
+
+- [Siły Powietrzne, 13 IX 2026](https://t.me/kpszsu/78070): 453 BSP wystrzelonych, 405 przechwyconych.
+- [Siły Powietrzne, 19 IX 2026](https://t.me/kpszsu/78956): „двома … ракетами” — 2 rakiety, pełna liczba.
+- [Siły Powietrzne, 24 IX 2026](https://t.me/kpszsu/79861): typy rakiet bez liczby; przechwycono 4 + 3, więc minimum 7.
+- [Siły Powietrzne, 29 IX 2026](https://t.me/kpszsu/81294): „ракетою” i „двома … ракетами” — 3 rakiety.
+- Każdy z 27 incydentów poza Ukrainą ma w `index.html` własny odnośnik do źródła (pole `s`),
+  widoczny w panelu po kliknięciu szpilki.
+
+### Incydenty poza Ukrainą
+
+Szpilki to wybrane, udokumentowane incydenty: upadki, zestrzelenia, szczątki i przeloty.
+Liczą zdarzenia, nie pociski. 1 X 2026 sprawdzono wszystkie wcześniejsze wpisy ze źródłami
+i poprawiono 10 z 13, głównie współrzędne. Merytoryczne korekty:
+
+- Grindu, 11 XI 2025: dron spadł bez szkód; wcześniejszy opis trafienia w dom był błędny.
+- Gaigalava (Łotwa), 7 IX 2024: ok. 85 km od granicy z Białorusią, nie ok. 150 km.
+- Osiny, 20 VIII 2025: typ drona nie został ustalony, więc usunięto „Gerbera”.
+- Wyryki-Wola, 10 IX 2025: według prokuratury dom trafiła rakieta AIM-9X z F-35.
+- Tarnawa-Kolonia, 30 VII 2026: prokuratura potwierdziła pocisk Ch-101; poprawiono położenie.
+- Dodano Bydgoszcz (Ch-55, 16 XII 2022) i 13 nowych zdarzeń z XI 2025 – IX 2026 w Rumunii,
+  Mołdawii, Polsce i na Litwie, m.in. pierwsze zestrzelenie nad Rumunią (24 VII 2026),
+  uzbrojony dron Gerbera-2 na plaży w Rusinowie (14 IX 2026) i zestrzelenie nad Litwą (15 IX 2026).
+- Wybór nie jest kompletny. Według ABC News do 17 VIII 2026 Rumunia odnotowała 23 naruszenia
+  przestrzeni, a prezydent Mołdawii mówi o 39 w 2026 r. Dodawaj wpisy tylko ze źródłem.
+
 ## Aktualizacja raportów
 
 `scripts/scrape_af.py` czyta publiczny podgląd Telegrama @kpszsu, wyłącznie poranne komunikaty
@@ -67,8 +96,16 @@ Pola: `d` (data raportowanego nalotu), `id`, `source`, `coverage: "morning"`, `u
 `uav_down` (wyłącznie BSP lub `null`), `down_total` (wszystkie cele), `msl`
 (pełna liczba wystrzelonych rakiet lub `null`), `msl_min` (znane minimum), `msl_complete`, `dirs`.
 
-Skrypt nie zamienia nieznanej liczby w zero. Błąd pobierania albo brak rozpoznanych raportów
-przerywa aktualizację; zapis jest atomowy. GitHub Actions uruchamia skrypt codziennie o 06:10 UTC.
+Skrypt nie zamienia nieznanej liczby w zero. Pojedynczy błąd sieci albo pusta strona są ponawiane;
+trwały błąd albo brak rozpoznanych raportów przerywa aktualizację, a zapis jest atomowy.
+GitHub Actions uruchamia skrypt codziennie o 06:10 UTC, a potem testy parsera i danych.
+
+Kanał publikuje ok. 150–200 wpisów na dobę, więc domyślny limit 400 stron sięga ok. 45 dni wstecz.
+Starsze dni uzupełnisz, podając id wpisu, od którego zacząć:
+
+```bash
+python3 scripts/scrape_af.py 2026-07-30 74300
+```
 
 Strona waliduje i sortuje dane, usuwa duplikaty dat i pomija przyszłe wpisy.
 Po błędzie pobierania pokazuje jawny komunikat i kończy serię na 31 VII 2026,
@@ -99,7 +136,12 @@ bez fikcyjnych wartości zastępczych dla kolejnych miesięcy.
 - **Suwak** umożliwia przewijanie również klawiaturą. **Pomiń nalot** przechodzi do kolejnego dnia.
 - **Obwód** otwiera wpisy z zestawu; zakończenia tras w modelu są opisane osobno od danych historycznych.
 - **Obiekt w locie** pokazuje orientacyjny czas, dystans i wagę sylwetki w modelu.
-- **Spacja** — pauza, **strzałki** — ±30 dni, **1/2/3** — tempo, **Esc** — zamknięcie panelu.
+- **Spacja** — pauza, **strzałki** — ±30 dni, **1/2/3** — tempo, **+/−** — zbliżenie, **Esc** — zamknięcie panelu.
+- **Kółko myszy** przewija stronę także nad mapą. Mapę przybliża **Ctrl/⌘ + kółko**, gest szczypania
+  na gładziku albo przyciski **+ / −** na mapie.
+- **Dotyk:** przesunięcie w pionie przewija stronę, w bok obraca mapę, dwa palce przybliżają i pochylają.
+  Dotknięcie obwodu lub szpilki otwiera panel, a lecącego obiektu pokazuje dymek na 4 s.
+- **Telefon:** opis nalotu i liczniki są pod mapą, nie na niej; kamera obejmuje cały kraj.
 - Przy `prefers-reduced-motion` strona zaczyna w pauzie, bez obrotu kamery.
 
 ## Stack

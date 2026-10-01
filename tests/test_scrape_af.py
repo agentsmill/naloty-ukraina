@@ -59,6 +59,27 @@ class ParserTests(unittest.TestCase):
             r = af.parse(f'У ніч на 1 серпня атакував {phrase}100 ударними БпЛА. Повітряний напад відбивали.')
             self.assertEqual(r['msl'], expected)
 
+    def test_missile_counts_written_as_words(self):
+        r = af.parse(self.fixture(78956))   # „двома протикорабельними ракетами”
+        self.assertEqual((r['msl'], r['msl_min'], r['msl_complete']), (2, 2, True))
+        r = af.parse(self.fixture(81294))   # „ракетою” + „двома балістичними ракетами”
+        self.assertEqual((r['msl'], r['msl_min'], r['msl_complete']), (3, 3, True))
+
+    def test_intercepted_missiles_raise_the_minimum_when_launch_count_is_missing(self):
+        r = af.parse(self.fixture(79861))   # typy bez liczby; przechwycono 4 + 3
+        self.assertIsNone(r['msl'])
+        self.assertEqual(r['msl_min'], 7)
+        r = af.parse('У ніч на 1 серпня атакував балістичними ракетами та 100 ударними БпЛА. Повітряний напад відбивали. Збито/подавлено 82 цілі: дві балістичні ракети та 80 ворожих БпЛА.')
+        self.assertEqual((r['msl'], r['msl_min']), (None, 2))
+
+    def test_intercept_total_is_not_added_to_its_own_breakdown(self):
+        r = af.parse(self.fixture(70754))   # „55 ракет” = 1 + 54
+        self.assertEqual((r['msl'], r['msl_min'], r['msl_complete']), (74, 74, True))
+
+    def test_more_intercepted_than_launched_is_not_a_complete_count(self):
+        r = af.parse('У ніч на 1 серпня атакував 2 крилатими ракетами та 100 ударними БпЛА. Повітряний напад відбивали. Збито/подавлено 5 крилатих ракет та 80 ворожих БпЛА.')
+        self.assertEqual((r['msl'], r['msl_min'], r['msl_complete']), (None, 5, False))
+
     def test_latest_correction_wins_even_if_smaller(self):
         ps = [(12, '2026-09-01T06:00:00+00:00', 'У ніч на 1 вересня атакував 80 ударними БпЛА.'),
               (11, '2026-09-01T05:00:00+00:00', 'У ніч на 1 вересня атакував 90 ударними БпЛА.')]
@@ -78,6 +99,7 @@ class ParserTests(unittest.TestCase):
             self.assertGreaterEqual(r['uav'], 0)
             if r['uav_down'] is not None: self.assertLessEqual(r['uav_down'], r['uav'])
             self.assertEqual(r['msl'] is not None, r['msl_complete'])
+            if r['msl'] is not None: self.assertEqual(r['msl'], r['msl_min'])
             self.assertEqual(r['coverage'], 'morning')
 
 
