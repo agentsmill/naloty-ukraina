@@ -93,6 +93,16 @@ body.night #track .head::after{animation:hb 1s ease-in-out infinite}@keyframes h
 #track .bar.part{background:repeating-linear-gradient(135deg,var(--petrol) 0 3px,transparent 3px 6px)}
 #track .fill{position:absolute;left:0;top:61px;height:4px;background:var(--west)}
 #track .ev{position:absolute;top:64px;width:8px;height:18px;margin-left:-3px;opacity:.35;cursor:pointer}
+#track button.ev{padding:0;border:0;background:transparent;color:var(--west)}
+#timelinePosition{display:block;width:100%;accent-color:var(--west);margin:2px 0 10px}
+.context{font-size:12px;line-height:1.5;margin:0 0 12px;max-width:90ch}
+.context strong{color:var(--west)}
+.context a,#eventSource{color:inherit;text-underline-offset:3px}
+#eventSource{pointer-events:auto;font-size:12px}
+#endCard{position:absolute;z-index:4;left:50%;top:44%;transform:translate(-50%,-50%);width:min(430px,calc(100% - 32px));padding:22px;background:rgba(10,23,32,.96);color:#EEF1EC;border:1px solid #527080}
+#endCard[hidden]{display:none}#endCard h3{margin:0 0 8px;font-family:"Fraunces",serif;font-size:25px;font-weight:500}
+#endCard p{font-size:13px;margin:0 0 16px}#endCard button{color:#EEF1EC;border-color:#9FB3BD}
+body.paused #track .head::after{animation-play-state:paused}
 #track .ev::before{content:"";position:absolute;left:3px;top:2px;width:2px;height:14px;background:var(--west)}
 #track .ev:hover{opacity:1}
 #track .ev.hit{opacity:1}
@@ -156,38 +166,42 @@ td{padding:8px 0}
 <body>
 <div class="wrap">
 
-<h1>Naloty na Ukrainę, 24 lutego 2022 – dziś</h1>
-<p class="lede">Cała wojna powietrzna na jednej osi czasu, na mapie politycznej: obwody, sąsiedzi,
-granica NATO, tereny okupowane. Kliknij obwód, żeby zobaczyć, co w niego doleciało. Najedź na
-lecący obiekt, żeby sprawdzić, dokąd leci i ile mu zostało. Gdy oś czasu dojdzie do udokumentowanego
-nalotu, zegar sam zwalnia do ok. godziny na sekundę: obiekty startują o zaplanowanych godzinach
-i uderzają tej samej nocy, a potem czas wraca do normalnego biegu.</p>
+<h1>Rosyjskie naloty na Ukrainę</h1>
+<p class="lede">Od 24 lutego 2022: jak zmieniała się skala ataków i jak daleko na zachód sięgały?
+Prześledź liczbę raportowanych BSP i wybrane naloty. Kliknij znacznik pod wykresem, żeby
+odtworzyć model ataku, albo obwód, żeby przejrzeć wpisy z tego regionu.</p>
+<p class="context"><strong>Trasy są ilustracyjne.</strong> Położenie, godziny startu i zakończenia lotów
+nie odtwarzają rzeczywistych torów ani miejsc trafień. Liczniki pochodzą z serii danych, nie z liczby wybuchów.</p>
+<p class="context" id="dataStatus" role="status">Wczytywanie danych…</p>
 
 <div id="stage">
   <div id="gl"></div>
   <div id="lbl"></div>
-  <div id="hud"><div id="date">—</div><div id="day">—</div><div id="night"><div id="nBar"><i id="nFill"></i></div><span id="nTxt"></span><button id="skip">Pomiń noc ▸</button></div><div id="flash"><h3 id="fh"></h3><p id="fp"></p></div></div>
+  <div id="hud"><div id="date">—</div><div id="day">—</div><div id="night"><div id="nBar"><i id="nFill"></i></div><span id="nTxt"></span><button id="skip">Pomiń nalot ▸</button></div><div id="flash"><h3 id="fh"></h3><p id="fp"></p><a id="eventSource" hidden target="_blank" rel="noopener noreferrer">Źródło liczby dla zachodu ↗</a></div></div>
   <div id="hint">przeciągnij — obrót · kółko — zbliżenie<br>klik obwód — szczegóły · <kbd>spacja</kbd> pauza<br><span id="fresh"></span></div>
   <div id="tip"></div>
   <div id="panel"><button class="x" id="px" aria-label="Zamknij">×</button><div id="pc"></div></div>
   <div id="stats">
-    <div><b id="sRate">—</b><span>dronów dziennie</span></div>
-    <div class="est"><b id="sTot">—</b><span>wystrzelonych narastająco</span></div>
-    <div class="wz"><b id="sWest">—</b><span>na zachód, ostatni udokumentowany nalot</span></div>
-    <div class="wz est"><b id="sWestCum">0</b><span>na zachód, udokumentowane łącznie</span></div>
-    <div class="inc"><b id="sInc">0</b><span>obiektów spadło poza Ukrainą</span></div>
+    <div><b id="sRate">—</b><span id="rateLabel">BSP / dzień · średnia miesiąca</span></div>
+    <div class="est"><b id="sTot">—</b><span>BSP narastająco · bez rakiet</span></div>
+    <div class="wz"><b id="sWest">—</b><span>na zachód · ostatni wpis w zestawie</span></div>
+    <div class="wz"><b id="sWestCum">0</b><span>na zachód · wpisy ze źródłem liczby</span></div>
+    <div class="inc"><b id="sInc">0</b><span>wybranych incydentów poza Ukrainą</span></div>
   </div>
+  <div id="endCard" hidden role="status"><h3>Koniec dostępnych danych</h3><p id="endText"></p><button id="replay">Odtwórz ponownie</button></div>
   <div id="boot">Budowanie mapy…</div>
 </div>
 
-<div id="track"><div class="cap">wystrzeleń miesięcznie · kliknij znacznik, żeby odtworzyć nalot</div><div class="base"></div>
+<div id="track"><div class="cap">BSP w miesiącu · kreskowanie = niepełne dane · znaczniki = wybrane naloty</div><div class="base"></div>
 <div class="fill" id="tFill"></div><div class="head" id="tHead"></div></div>
+<input id="timelinePosition" type="range" min="0" max="1" step="0.01" value="0" aria-label="Pozycja na osi czasu">
+<p class="context"><a id="dailySource" hidden target="_blank" rel="noopener noreferrer">Raport Sił Powietrznych dla wybranego dnia ↗</a></p>
 
 <div class="ctl">
-  <button id="play">Pauza</button><button id="rewind">Od początku</button>
+  <button id="play">Pauza</button><button id="rewind">Od początku</button><button id="toEnd">Koniec danych</button>
   <span class="sep"></span>
   <button class="spd" data-s="1">1×</button><button class="spd on" data-s="3">3×</button><button class="spd" data-s="8">8×</button>
-  <span class="lbl" style="margin-left:4px">tempo nocy nalotu skaluje się z prędkością</span>
+  <span class="lbl" style="margin-left:4px">tempo osi i lotu · 8× jest osiem razy szybsze niż 1×</span>
   <span class="sep"></span>
   <span class="lbl">WIDOK</span>
   <button class="cam" data-v="all">Cały kraj</button><button class="cam" data-v="west">Zachód</button>
@@ -210,40 +224,51 @@ i uderzają tej samej nocy, a potem czas wraca do normalnego biegu.</p>
   <li><span class="sw sq" style="background:#E0B060"></span>granica z Białorusią</li>
   <li><span class="sw sq" style="background:#E06A50"></span>granica z Rosją</li>
   <li><span class="sw" style="background:#E3CDB0;border:1px solid #7A7466"></span>obwody zachodnie</li>
-  <li><span class="sw" style="background:radial-gradient(#FFB070,#B8542F 70%,transparent)"></span>poświata: nagromadzenie trafień</li>
-  <li><span class="sw" style="background:#E8B04B"></span>obiekt spadł poza Ukrainą (szpilka na mapie, kropka na osi)</li>
+  <li><span class="sw" style="background:radial-gradient(#FFB070,#B8542F 70%,transparent)"></span>poświata: zakończenia tras w modelu</li>
+  <li><span class="sw" style="background:#E8B04B"></span>wybrany incydent poza Ukrainą (także przeloty i szczątki)</li>
 </ul>
 
 <h2>Skąd biorą się liczby</h2>
-<p class="note">Miesięczne wolumeny za okres sierpień 2025 – lipiec 2026 pochodzą z zestawień ISIS opartych
-na dobowych raportach ukraińskich Sił Powietrznych. Wcześniejsze okresy nie mają opublikowanej serii
-miesięcznej — tempo jest wyliczone z sum rocznych i cząstkowych, na osi czasu zaznaczone szarym słupkiem.</p>
+<p class="note">BSP to bezzałogowe statki powietrzne. Seria obejmuje raportowaną kategorię dronów
+uderzeniowych i wabików; nie jest sumą całej broni użytej przeciw Ukrainie. Rakiety występują
+w wybranych animacjach, ale nie są dodawane do licznika BSP.</p>
 <table>
-  <tr><th>Okres</th><th class="n">Wystrzeleń</th><th>Podstawa</th></tr>
-  <tr><td>IX–XII 2022</td><td class="n">~660</td><td>suma roczna, rozłożona równo</td></tr>
-  <tr><td>2023</td><td class="n">~3 300</td><td>2022 i 2023 razem ok. 4 000</td></tr>
-  <tr><td>I–X 2024</td><td class="n">6 987</td><td>Sztab Generalny; sam X — 2 023</td></tr>
-  <tr><td>I–VII 2025</td><td class="n">~28 890</td><td>suma roczna minus zmierzone VIII–XII</td></tr>
-  <tr><td>VIII 2025 – VII 2026</td><td class="n">62 994</td><td>seria miesięczna ISIS</td></tr>
-  <tr><td>od VIII 2026</td><td class="n">codziennie</td><td>poranne podsumowania Sił Powietrznych, pobierane automatycznie</td></tr>
+  <tr><th>Okres</th><th class="n">BSP</th><th>Podstawa</th></tr>
+  <tr><td>IX–XII 2022</td><td class="n">≈ 660</td><td>wcześniejszy szacunek w projekcie</td></tr>
+  <tr><td>2023</td><td class="n">≈ 3 300</td><td>wcześniejszy szacunek w projekcie</td></tr>
+  <tr><td>I–X 2024</td><td class="n">6 987</td><td>suma przyjęta w projekcie; I–IX rozłożone równomiernie</td></tr>
+  <tr><td>XI–XII 2024</td><td class="n">≈ 3 960</td><td>wcześniejszy szacunek w projekcie</td></tr>
+  <tr><td>I–VII 2025</td><td class="n" id="earlyTotal">—</td><td>miesięczne dane ISIS</td></tr>
+  <tr><td>VIII 2025 – VII 2026</td><td class="n" id="measuredTotal">—</td><td>miesięczne dane ISIS</td></tr>
+  <tr><td>od VIII 2026</td><td class="n" id="dailyTotal">—</td><td>suma dostępnych porannych raportów</td></tr>
 </table>
-<p class="note" style="margin-top:12px">Od sierpnia 2026 liczby dzienne pochodzą wprost z porannych komunikatów Sił Powietrznych
-(kanał @kpszsu). Skrypt w repo czyta je raz dziennie i dopisuje do <code>data/daily.json</code>; strona
-przy starcie pobiera ten plik i przelicza ostatnie miesiące. Ograniczenie źródła, nie skryptu: od maja 2026
-Siły Powietrzne raportują tylko okno nocne, a od 10 sierpnia 2026 nie podają liczby części typów rakiet.
-Bieżący miesiąc na osi ma słupek kreskowany, przeskalowany do pełnych 30 dni.</p>
+<p class="note" style="margin-top:12px">Źródła serii miesięcznej:
+<a href="https://isis-online.org/isis-reports/monthly-analysis-of-russian-shahed-136-deployment-against-ukraine">ISIS, tabela 1 — 2025 i I–VI 2026</a>;
+<a href="https://isis-online.org/isis-reports/monthly-analysis-of-russian-shahed-136-deployment-against-ukraine-updated">ISIS — VII–VIII 2026 i ograniczenia raportowania</a>.
+Dane dzienne: <a href="https://t.me/s/kpszsu">Siły Powietrzne Ukrainy</a>.
+Link do konkretnego raportu pojawia się pod osią po wybraniu dnia.</p>
+<p class="note">Wcześniejsze szacunki pozostają oznaczone szarymi słupkami. Licznik narastający jest
+przybliżony: w okresie serii miesięcznej przyrost wewnątrz miesiąca jest równomierny. Od sierpnia
+2026 doliczamy konkretne raporty w dniu ich publikacji. Brak raportu oznacza brak danych, a nie zero ataków.
+Częściowy miesiąc pokazuje rzeczywistą sumę dostępnych raportów — bez ekstrapolacji.</p>
+<p class="note">Poranne raporty nie zawsze obejmują pełną dobę ani wszystkie kategorie broni.
+Dlatego ich suma może być niższa od szerszych zestawień ISIS, uwzględniających także osobne ataki dzienne.
+Nieznana liczba rakiet pozostaje nieznana; liczba wszystkich przechwyconych celów nie jest liczbą
+strąconych BSP. Wczesne szacunki i późniejsze raporty mają różny zakres kategorii.</p>
+<p class="note">Model nalotu: na zachodzie 1 sylwetka odpowiada 1 obiektowi przyjętemu w scenariuszu,
+w pozostałej części kraju 1 sylwetka drona odpowiada najwyżej 5 BSP, a 1 sylwetka rakiety — 1 rakiecie.
+Ostatnia grupa zachowuje resztę, więc liczby nie są zaokrąglane w górę. Loty i punkty docelowe są
+ilustracyjne. Przyjęte prędkości modelu — 185 km/h dla BSP i 800 km/h dla rakiet — służą porównaniu
+czasu lotu; nie reprezentują każdego typu broni, w szczególności dronów odrzutowych i rakiet balistycznych.
+Model nie losuje domyślnej skuteczności obrony.</p>
+<p class="note">Wybrane naloty nie stanowią pełnej historii ataków na zachód.
+Suma „wpisy ze źródłem liczby” uwzględnia tylko wpisy z podanym odnośnikiem dla tej liczby;
+nie mierzy trafień ani udziału zachodu we wszystkich atakach. Np. około 163 obiekty z 5 października
+2025 dotyczą obszaru dowództwa „Zachód”, nie samego obwodu lwowskiego.
+Wpisy bez zweryfikowanej liczby zachowują opis, ale nie zwiększają tej sumy.</p>
 <p class="note">Granice obwodów: geoBoundaries (gbOpen, ADM1). Granice państw: Natural Earth 50m.
-Linia frontu przybliżona. Do 2024 liczono faktyczne Shahedy, od 2025 wszystkie BSP typu Shahed razem z wabikami —
-licznik narastający miesza dwie definicje, stąd znak przybliżenia.</p>
-<p class="note">Noc nalotu: obiekty na zachód lecą w skali 1:1, reszta salwy krajowej na osie wschód–centrum
-w skali 1:5 dla dronów i 1:1 dla rakiet, z ok. 90 % przechwyceń — to średnia krajowa, nie dane per obiekt.
-Starty rozłożone na pierwsze 2–3 godziny, rakiety później niż drony, tak jak w atakach kombinowanych.
-Czas lotu liczony z odległości i prędkości przelotowej, więc rakieta z Morza Czarnego dolatuje do Lwowa
-w godzinę, a Shahed z Briańska w ponad cztery.</p>
-<p class="note">Czego tu nie ma: ciągłej serii dziennej dla zachodu. Liczby per obwód podają obwodowe
-administracje wojskowe, nieregularnie i tylko przy większych nalotach. Licznik „na zachód" zapala się wyłącznie
-w dni, w które taka liczba została opublikowana. Rozkład głównego strumienia na sześć osi wschód–centrum jest
-losowy, bo podziału dobowego na kierunki nikt nie publikuje — tempo jest prawdziwe, przypisanie nie.</p>
+Relief i linia frontu są przybliżone; front jest statyczną warstwą, nie rekonstrukcją zmian w czasie.
+Szpilki poza Ukrainą oznaczają wybrane incydenty: także przeloty, szczątki i zdarzenia o niepewnym pochodzeniu.</p>
 
 </div>
 
@@ -255,6 +280,7 @@ losowy, bo podziału dobowego na kierunki nikt nie publikuje — tempo jest praw
 </script>
 
 <script type="module">
+import {DAY,dim,normalizeDaily,dailyMonths,cumulativeAt,flightState,buildSalvo} from './js/model.mjs';
 import * as THREE from 'three';
 import {OrbitControls}    from 'three/addons/controls/OrbitControls.js';
 import {EffectComposer}   from 'three/addons/postprocessing/EffectComposer.js';
@@ -274,9 +300,16 @@ const GEO={"obl":[{"n":"Kijów","c":[30.55,50.44],"p":[[30.83,50.41],[30.74,50.5
 
 /* feed: data/daily.json z tego samego repo, dopisywany codziennie przez GitHub Action ze skryptu
    scripts/scrape_af.py (podsumowania Sił Powietrznych z t.me/s/kpszsu). Brak pliku = wbudowane dane. */
-let DAILY=null,DATA_TO="2026-09-17",DATA_SRC="wbudowane";
-try{const r=await Promise.race([fetch("data/daily.json",{cache:"no-store"}),new Promise((_,j)=>setTimeout(()=>j(new Error("timeout")),3000))]);
-  if(r.ok){const rows=await r.json();if(Array.isArray(rows)&&rows.length>30){DAILY=rows;DATA_TO=rows[rows.length-1].d;DATA_SRC="feed";}}}catch(e){}
+const DAILY_SINCE="2026-08-01";
+let DAILY=null,DATA_TO="2026-07-31",DATA_SRC="wbudowane",DATA_ERROR="";
+const dataAbort=new AbortController(),dataTimeout=setTimeout(()=>dataAbort.abort(),5000);
+try{const r=await fetch("data/daily.json",{cache:"no-store",signal:dataAbort.signal});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  const rows=normalizeDaily(await r.json()).filter(r=>r.d>=DAILY_SINCE);
+  if(!rows.length)throw new Error("Brak poprawnych raportów");
+  DAILY=rows;DATA_TO=rows.at(-1).d;DATA_SRC="feed";
+}catch(e){DATA_ERROR="Nie udało się pobrać raportów dziennych. Pokazujemy serię miesięczną do 31.07.2026.";}
+finally{clearTimeout(dataTimeout);}
 const UA=GEO.cty.UKR[0];
 const NATO=new Set(["POL","SVK","HUN","ROU"]);
 const CTYN={POL:"POLSKA",BLR:"BIAŁORUŚ",RUS:"ROSJA",MDA:"MOŁDAWIA",ROU:"RUMUNIA",HUN:"WĘGRY",SVK:"SŁOWACJA",TUR:"TURCJA",BGR:"BUŁGARIA",LTU:"LITWA",LVA:"ŁOTWA",CZE:"CZECHY",SRB:"SERBIA",GEO:"GRUZJA"};
@@ -303,33 +336,30 @@ const MAIN=[["kursk","charkow"],["millerowo","dniepr"],["briansk","kijow"],["ach
 
 const SERIES=[];
 const push=(y,m1,m2,v,meas)=>{for(let m=m1;m<=m2;m++)SERIES.push([y,m,v,meas]);};
-push(2022,9,12,165,false);push(2023,1,12,275,false);push(2024,1,9,552,false);push(2024,10,10,2023,true);
-push(2024,11,12,1980,false);push(2025,1,7,4127,false);
+push(2022,9,12,165,false);push(2023,1,12,275,false);push(2024,1,9,(6987-2023)/9,false);push(2024,10,10,2023,true);
+push(2024,11,12,1980,false);
+// ISIS, Table 1: actual monthly distribution, verified 18 September 2026.
+[[1,2629],[2,3904],[3,4198],[4,2422],[5,4003],[6,5438],[7,6297]].forEach(a=>push(2025,a[0],a[0],a[1],true));
 [[8,4128],[9,5643],[10,5298],[11,5447],[12,5131]].forEach(a=>push(2025,a[0],a[0],a[1],true));
 [[1,4442],[2,5059],[3,6462],[4,6583],[5,8161],[6,5749],[7,4891]].forEach(a=>push(2026,a[0],a[0],a[1],true));
-const dim=(y,m)=>new Date(Date.UTC(y,m,0)).getUTCDate();
-if(DAILY){
-  const bym={};DAILY.forEach(r=>{if(r.d<"2026-08-01")return;const k=r.d.slice(0,7);(bym[k]=bym[k]||{s:0,n:0,last:r.d});bym[k].s+=r.uav;bym[k].n++;bym[k].last=r.d;});
-  Object.keys(bym).sort().forEach(k=>{const y=+k.slice(0,4),m=+k.slice(5,7),o=bym[k],full=o.n>=dim(y,m)-1;
-    SERIES.push([y,m,o.s,true,full?dim(y,m):+o.last.slice(8,10)]);});
-}else{SERIES.push([2026,8,4453,true,31]);SERIES.push([2026,9,3123,true,17]);}
+if(DAILY)SERIES.push(...dailyMonths(DAILY,DAILY_SINCE));
 
 const EV=[
  {d:"2022-02-24",h:"Iwano-Frankiwsk — pierwszy dzień inwazji",t:"Rakiety w lotnisko wojskowe. Zachód Ukrainy jest atakowany od pierwszej doby, ale wyłącznie bronią lotniczą i okrętową.",west:[["tu95","ifrankiwsk",6,"m"]],n:"6",nat:{d:0,m:160}},
  {d:"2022-03-13",h:"Jaworów, obwód lwowski",t:"Ponad 30 rakiet manewrujących w poligon 25 km od granicy z Polską. 35 zabitych, 134 rannych. Najdalej na zachód wysunięty atak wojny do tamtego momentu.",west:[["tu95","jaworow",30,"m"]],n:"30",nat:{d:0,m:30}},
- {d:"2022-10-10",h:"Pierwsza wielka fala na sieć energetyczną",t:"84 rakiety manewrujące i 24 drony w 14 obwodów. Shahedy weszły do użycia miesiąc wcześniej, ale na zachód wciąż lecą wyłącznie rakiety.",west:[["tu95","lwow",8,"m"]],n:"8",nat:{d:24,m:84}},
- {d:"2023-07-06",h:"Lwów — 10 Kalibrów, 7 strąconych",t:"Rakiety wystrzelone z okrętów na Morzu Czarnym, ponad 800 km od celu. Doleciały 3. Rakieta w kompleks budynków w centrum: 10 zabitych, 42 rannych, 35 uszkodzonych budynków.",west:[["morze","lwow",10,"m"]],n:"10",kill:.7,nat:{d:0,m:10}},
+ {d:"2022-10-10",h:"Pierwsza wielka fala na sieć energetyczną",t:"84 rakiety manewrujące i 24 drony w 14 obwodów. Scenariusz ilustruje rakietowe uderzenia na zachód; nie jest pełnym podziałem salwy na obwody.",west:[["tu95","lwow",8,"m"]],n:"8",nat:{d:24,m:84}},
+ {d:"2023-07-06",h:"Lwów — 10 Kalibrów, 7 strąconych",t:"Rakiety wystrzelone z okrętów na Morzu Czarnym, ponad 800 km od celu. Doleciały 3. Rakieta w kompleks budynków w centrum: 10 zabitych, 42 rannych, 35 uszkodzonych budynków.",west:[["morze","lwow",10,"m"]],n:"10",source:"https://t.me/kpszsu/3108",kill:.7,nat:{d:0,m:10}},
  {d:"2024-03-22",h:"88 rakiet i 63 drony",t:"Pierwsza fala, w której obwody lwowski i iwano-frankiwski trafione są razem z Charkowem, Zaporożem i Odessą. Liczb per obwód na zachodzie w tym roku nie publikowano.",west:[],n:"—",nat:{d:63,m:88}},
- {d:"2025-07-12",h:"Lwów, Łuck i Czerniowce",t:"Około 600 dronów i 26 rakiet w skali kraju; zachodnie obwody wśród najmocniej uderzonych. Drony po raz pierwszy są główną bronią sięgającą zachodu.",west:[],n:"—",nat:{d:600,m:26}},
- {d:"2025-10-05",h:"Obwód lwowski — 163 obiekty w jedną noc",t:"Około 140 Shahedów i 23 rakiety balistyczne w jeden obwód. Największy nalot na region lwowski w całej wojnie; w skali kraju 496 dronów i 53 rakiety.",west:[["briansk","lwow",140,"d"],["krym","lwow",23,"m"]],n:"163",nat:{d:496,m:53}},
- {d:"2025-11-19",h:"Tarnopol — 38 zabitych",t:"Ponad 470 dronów i 47 rakiet w skali kraju. Dwa bloki mieszkalne w Tarnopolu, wśród ofiar ośmioro dzieci. Najkrwawszy atak na zachodzie Ukrainy w całej wojnie.",west:[["briansk","tarnopol",40,"d"]],n:"~40",nat:{d:470,m:47}},
- {d:"2026-03-24",h:"Lwów w biały dzień",t:"948 dronów w ciągu doby — ówczesny rekord wojny, z tego 556 w fazie dziennej. Dron uderzył w budynek w historycznym centrum Lwowa.",west:[["briansk","lwow",30,"d"]],n:"~30",nat:{d:948,m:35}},
- {d:"2026-04-01",h:"Ponad 80 dronów na cały zachód",t:"Po nocnej fali 339 dronów ruszył atak dzienny. Do 13:43 wykryto ponad 80 dronów lecących na Lwów, Tarnopol, Iwano-Frankiwsk, Czerniowce i Zakarpacie.",west:[["briansk","lwow",22,"d"],["briansk","tarnopol",18,"d"],["briansk","ifrankiwsk",16,"d"],["briansk","czerniowce",14,"d"],["briansk","uzhhorod",12,"d"]],n:"82",nat:{d:339,m:0}},
- {d:"2026-07-30",h:"Kijów i Lwów, obiekt spada w Polsce",t:"Ponad 280 dronów i 70 rakiet, w tym 61 Ch-101 i Kalibrów z rejonu Wołgogradu i Noworosyjska. Główne cele: obwód kijowski i lwowski. O 3:40 polskie radary wykryły obiekt, który zniknął z ekranów; prawdopodobne miejsce upadku — Tarnawa-Kolonia na Lubelszczyźnie. Liczby obiektów w sam obwód lwowski nie podano.",west:[],n:"—",nat:{d:284,m:70}},
+ {d:"2025-07-12",h:"Lwów, Łuck i Czerniowce",t:"W zestawie przyjęto około 600 dronów i 26 rakiet w skali kraju. Zachodnie obwody były wśród celów; brak zweryfikowanej liczby obiektów przypisanych do zachodu.",west:[],n:"—",nat:{d:600,m:26}},
+ {d:"2025-10-05",h:"Dowództwo Zachód — około 163 obiekty",t:"Według administracji obwodu lwowskiego w obszar dowództwa Zachód weszło około 140 dronów i 23 rakiety manewrujące. To liczba dla szerszego regionu, nie liczba trafień we Lwów. Kierunki na mapie są ilustracyjne.",west:[["briansk","lwow",140,"d"],["krym","lwow",23,"m"]],n:"≈163",region:true,source:"https://t.me/kozytskyy_maksym_official/25016",nat:{d:496,m:53}},
+ {d:"2025-11-19",h:"Tarnopol — 38 zabitych",t:"Ponad 470 dronów i 47 rakiet w skali kraju. Dwa bloki mieszkalne w Tarnopolu, wśród ofiar ośmioro dzieci. W zestawie brak zweryfikowanej liczby obiektów skierowanych na Tarnopol.",west:[],n:"—",nat:{d:470,m:47}},
+ {d:"2026-03-24",h:"Lwów w biały dzień",t:"948 dronów w ciągu doby — ówczesny rekord wojny, z tego 556 w fazie dziennej. Dron uderzył w budynek w historycznym centrum Lwowa.",west:[],n:"—",nat:{d:948,m:35}},
+ {d:"2026-04-01",h:"Ponad 80 dronów na cały zachód",t:"Po nocnej fali 339 dronów ruszył atak dzienny. Do 13:43 wykryto ponad 80 dronów lecących na Lwów, Tarnopol, Iwano-Frankiwsk, Czerniowce i Zakarpacie.",west:[],n:"—",nat:{d:339,m:0}},
+ {d:"2026-07-30",h:"Kijów i Lwów, obiekt spada w Polsce",t:"284 BSP i 74 rakiety, w tym 61 Ch-101 i Kalibrów — według raportu Sił Powietrznych. Główne cele: obwód kijowski i lwowski. O 3:40 polskie radary wykryły obiekt, który zniknął z ekranów; prawdopodobne miejsce upadku — Tarnawa-Kolonia na Lubelszczyźnie. Liczby obiektów w sam obwód lwowski nie podano.",west:[],n:"—",nat:{d:284,m:74}},
  {d:"2026-05-13",h:"Główne uderzenie skierowane na zachód",t:"892 drony w dobę. Obwód wołyński naliczył 43 drony w pięć godzin, tarnopolski 23. Zakarpacie — najcięższy nalot na region od początku wojny; Węgry wezwały ambasadora Rosji.",west:[["briansk","luck",43,"d"],["briansk","tarnopol",23,"d"]],n:"66",nat:{d:892,m:0}}
 ];
 EV.sort((a,b)=>a.d<b.d?-1:1);
-const T0=Date.UTC(2022,1,24),DAY=864e5,T1=Date.UTC(+DATA_TO.slice(0,4),+DATA_TO.slice(5,7)-1,+DATA_TO.slice(8,10))+DAY,SPAN=(T1-T0)/DAY;
+const T0=Date.UTC(2022,1,24),T1=Date.parse(DATA_TO)+DAY,SPAN=(T1-T0)/DAY;
 EV.forEach(e=>{const p=e.d.split("-").map(Number);e.ts=Date.UTC(p[0],p[1]-1,p[2]);e.f=(e.ts-T0)/DAY/SPAN;
   e.nv=parseInt(String(e.n).replace(/[^0-9]/g,""))||0;});
 /* obiekty, które spadły lub weszły w przestrzeń innych państw — wybór udokumentowanych przypadków, do rozszerzenia.
@@ -564,8 +594,9 @@ const R=Math.PI/180;
 function gc(a,b){const h=Math.sin((b[1]-a[1])*R/2)**2+Math.cos(a[1]*R)*Math.cos(b[1]*R)*Math.sin((b[0]-a[0])*R/2)**2;return 2*6371*Math.asin(Math.sqrt(h));}
 function makeRoute(srcKey,cityKey,drone){const a=SRC[srcKey],b=CITY[cityKey];
   const A=new THREE.Vector3(px(a[0]),1.9,pz(a[1])),B=new THREE.Vector3(px(b[0]),height(b[0],b[1])+.15,pz(b[1])),km=gc(a,b);
-  const C=new THREE.Vector3((A.x+B.x)/2,Math.min(4.5+km*.0125,17),(A.z+B.z)/2);
-  return {curve:new THREE.QuadraticBezierCurve3(A,C,B),km,dur:km/(drone?185:800)*(drone?2.3:5.2),durH:km/(drone?185:800),end:B,src:srcKey,city:cityKey,obl:oblastAt(b[0],b[1]),drone};}
+  // A low, illustrative arc; height is not a physical flight altitude.
+  const C=new THREE.Vector3((A.x+B.x)/2,Math.min(2.5+km*.003,6),(A.z+B.z)/2);
+  return {curve:new THREE.QuadraticBezierCurve3(A,C,B),km,durH:km/(drone?185:800),end:B,src:srcKey,city:cityKey,obl:oblastAt(b[0],b[1]),drone};}
 const routeLines=new THREE.Group();scene.add(routeLines);const flowMats=[];
 function addRibbon(r,color,opacity,flow){if(flow){const l=fatLine(r.curve.getPoints(72),color,2.2,{dashed:true,dashSize:.55,gapSize:.42,opacity});flowMats.push(l.material);routeLines.add(l);return l;}
   const m=new THREE.Mesh(new THREE.TubeGeometry(r.curve,54,.05,6,false),new THREE.MeshBasicMaterial({color,transparent:true,opacity,depthWrite:false}));routeLines.add(m);return m;}
@@ -600,9 +631,13 @@ function makePool(mesh,n,extra){const pool=[];for(let i=0;i<n;i++){pool.push({on
 const PD=makePool(drones,MAXD,null),PM=makePool(missiles,MAXM,plumes);
 const CCOL={d:new THREE.Color(.95,.66,.30),w:new THREE.Color(1,.50,.30),m:new THREE.Color(.84,.91,.96)};
 function killAll(){[PD,PM].forEach(P=>{P.pool.forEach((p,i)=>{p.on=false;P.mesh.setMatrixAt(i,ZERO);if(P.extra)P.extra.setMatrixAt(i,ZERO);});P.mesh.instanceMatrix.needsUpdate=true;if(P.extra)P.extra.instanceMatrix.needsUpdate=true;});}
-function spawn(route,kind,killAt,scale,evt){const P=kind==="m"?PM:PD;
-  for(let n=0;n<P.n;n++){const i=(P.cursor+n)%P.n,p=P.pool[i];if(!p.on){P.cursor=(i+1)%P.n;p.on=true;p.r=route;p.t=0;p.kill=killAt||2;p.s=scale||1;p.kind=kind;p.ph=Math.random()*6.28;p.evt=!!evt;
-    P.mesh.setColorAt(i,CCOL[kind]);P.mesh.instanceColor.needsUpdate=true;return;}}}
+function spawn(q,evt=false){const P=q.kind==="m"?PM:PD;
+  for(let n=0;n<P.n;n++){const i=(P.cursor+n)%P.n,p=P.pool[i];if(!p.on){P.cursor=(i+1)%P.n;
+    Object.assign(p,{on:true,r:q.r,t:0,elapsed:0,stop:q.stop??1,s:q.scale??1,kind:q.kind,ph:i*2.4,evt,
+      at:q.at??0,west:!!q.west,weight:q.weight??1});
+    P.mesh.setColorAt(i,CCOL[q.kind]);P.mesh.instanceColor.needsUpdate=true;return true;}}return false;}
+const liveFlights=()=>PD.pool.some(p=>p.on)||PM.pool.some(p=>p.on);
+const liveEventFlights=()=>PD.pool.some(p=>p.on&&p.evt)||PM.pool.some(p=>p.on&&p.evt);
 
 /* efekty */
 const puffGeo=new THREE.SphereGeometry(1,12,9),ringGeo=new THREE.RingGeometry(.72,1,40),fxPool=[],fxLive=[];
@@ -612,7 +647,7 @@ function fx(o){let slot=fxPool.find(f=>!f.on&&f.ring===!!o.ring);if(!slot){const
   slot.on=true;const m=slot.m;m.visible=true;m.position.copy(o.p);m.rotation.set(o.ring?-Math.PI/2:0,0,0);m.scale.setScalar(o.r);m.material.color.set(o.c0);m.material.opacity=o.o;
   m.material.blending=o.add?THREE.AdditiveBlending:THREE.NormalBlending;fxLive.push({slot,t:0,dur:o.dur,r0:o.r,r1:o.r*o.grow,o:o.o,rise:o.rise||0,c0:o.c0,c1:o.c1||o.c0,ease:o.ease||1});}
 const oblHits=GEO.obl.map(()=>[]);
-function impact(v,kind,route){const west=kind!=="d",m=kind==="m",p=v.clone();p.y+=.05;
+function impact(v,kind,route,west=false){const m=kind==="m",p=v.clone();p.y+=.05;
   fx({p,r:m?.16:.12,grow:2.2,dur:.11,o:1,c0:0xFFFFFF,add:true});
   fx({p,r:west?.2:.15,grow:2.6,dur:m?.55:.42,o:.92,rise:.7,c0:m?0xFFE6B0:0xFFC48A,c1:0xE84A18,add:true,ease:.6});
   fx({p,r:west?.2:.15,grow:5.2,dur:1.6,o:.5,rise:1.3,c0:0x7A6A62,c1:0x24201E,ease:1.8});
@@ -634,9 +669,13 @@ function stepSparks(dt){for(let i=0;i<SPN;i++){if(sLife[i]<=0)continue;sLife[i]-
   sPos[i*3]+=sVel[i*3]*dt;sPos[i*3+1]+=sVel[i*3+1]*dt;sPos[i*3+2]+=sVel[i*3+2]*dt;
   if(sPos[i*3+1]<sGnd[i]){sPos[i*3+1]=sGnd[i];sVel[i*3+1]*=-.25;sVel[i*3]*=.6;sVel[i*3+2]*=.6;}}sGeo.attributes.position.needsUpdate=true;}
 const dummy=new THREE.Object3D(),tan=new THREE.Vector3(),pt=new THREE.Vector3();
-function stepPool(P,dt,dh,now){for(let i=0;i<P.n;i++){const p=P.pool[i];if(!p.on)continue;p.t+=p.evt?dh/p.r.durH:dt/p.r.dur;
-  if(p.t>=p.kill){p.on=false;P.mesh.setMatrixAt(i,ZERO);if(P.extra)P.extra.setMatrixAt(i,ZERO);if(p.kill>=2){impact(p.r.end,p.kind,p.r);if(p.evt&&p.kind!=="d")nightHit++;}else{p.r.curve.getPoint(Math.min(p.t,1),pt);intercept(pt);if(p.evt)nightInt++;}continue;}
-  const tt=Math.min(p.t,1);p.r.curve.getPoint(tt,pt);p.r.curve.getTangent(tt,tan);dummy.position.copy(pt);dummy.lookAt(pt.x+tan.x,pt.y+tan.y,pt.z+tan.z);
+function stepPool(P,dt,hour,now){for(let i=0;i<P.n;i++){const p=P.pool[i];if(!p.on)continue;
+  if(p.evt)p.elapsed=Math.max(0,hour-p.at);else p.elapsed+=dt*HRATE();
+  const state=flightState(p.elapsed,p.r.durH,p.stop);p.t=state.progress;
+  if(state.done){p.on=false;P.mesh.setMatrixAt(i,ZERO);if(P.extra)P.extra.setMatrixAt(i,ZERO);
+    if(p.stop===1){impact(p.r.end,p.kind,p.r,p.west);if(p.evt&&p.west)nightHit+=p.weight;}
+    else{p.r.curve.getPointAt(p.stop,pt);intercept(pt);if(p.evt&&p.west)nightInt+=p.weight;}continue;}
+  p.r.curve.getPointAt(p.t,pt);p.r.curve.getTangentAt(p.t,tan);dummy.position.copy(pt);dummy.lookAt(pt.x+tan.x,pt.y+tan.y,pt.z+tan.z);
   if(p.kind!=="m")dummy.rotateZ(Math.sin(now*1.7+p.ph)*.16);dummy.scale.setScalar(p.s);dummy.updateMatrix();P.mesh.setMatrixAt(i,dummy.matrix);
   if(P.extra){dummy.scale.set(p.s*(.85+.3*Math.sin(now*23+p.ph)),p.s,p.s*(1.1+.25*Math.sin(now*17+p.ph)));dummy.updateMatrix();P.extra.setMatrixAt(i,dummy.matrix);}}
   P.mesh.instanceMatrix.needsUpdate=true;if(P.extra)P.extra.instanceMatrix.needsUpdate=true;}
@@ -657,7 +696,7 @@ ctr.minDistance=18;ctr.maxDistance=200;ctr.maxPolarAngle=1.46;ctr.autoRotate=tru
 let tween=null;
 const VIEWS={all:[[-27,32,48],[2,0,0]],west:[[-40,18,22],[-22,0,-2]],front:[[36,20,26],[20,0,2]],top:[[2,70,15],[2,0,0]]};
 /* ekran pionowy: kamera wyżej (o ok. 25°), żeby kraj wypełniał kadr zamiast horyzontu */
-if(innerHeight>innerWidth){for(const k in VIEWS){if(k==="top")continue;const [p,t]=VIEWS[k],d=[p[0]-t[0],p[1]-t[1],p[2]-t[2]],h=Math.hypot(d[0],d[2]),L=Math.hypot(h,d[1]),el=Math.atan2(d[1],h)+.45,nh=L*Math.cos(el);
+if(innerHeight>innerWidth){for(const k in VIEWS){if(k==="top")continue;const [p,t]=VIEWS[k],zoom=k==="all"?1.4:1,d=[(p[0]-t[0])*zoom,(p[1]-t[1])*zoom,(p[2]-t[2])*zoom],h=Math.hypot(d[0],d[2]),L=Math.hypot(h,d[1]),el=Math.atan2(d[1],h)+.45,nh=L*Math.cos(el);
   VIEWS[k]=[[t[0]+d[0]/h*nh,t[1]+L*Math.sin(el),t[2]+d[2]/h*nh],t];}camera.position.set(...VIEWS.all[0]);}
 function flyTo(v){const [p,t]=VIEWS[v];tween={p0:camera.position.clone(),p1:new THREE.Vector3(...p),t0:ctr.target.clone(),t1:new THREE.Vector3(...t),k:0};ctr.autoRotate=false;}
 function flyToPoint(x,z,dist){tween={p0:camera.position.clone(),p1:new THREE.Vector3(x-dist*.55,dist*.75,z+dist*.7),t0:ctr.target.clone(),t1:new THREE.Vector3(x,0,z),k:0};ctr.autoRotate=false;}
@@ -682,19 +721,19 @@ renderer.domElement.addEventListener("pointermove",setPtr);
 renderer.domElement.addEventListener("pointerleave",()=>{mouse.in=false;tip.classList.remove("on");setHover(-1);});
 function setHover(i){if(i===hoverObl)return;if(hoverObl>=0&&hoverObl!==selObl)oblLines[hoverObl].visible=false;hoverObl=i;
   if(i>=0&&i!==selObl){oblLines[i].visible=layers.obl;oblLines[i].material.color.set(0xFFFFFF);oblLines[i].material.opacity=.7;}}
-function fmtT(h){return h<1?Math.round(h*60)+" min":(Math.floor(h)+" h "+String(Math.round(h%1*60)).padStart(2,"0")+" min");}
+function fmtT(h){const m=Math.round(h*60);return m<60?m+" min":Math.floor(m/60)+" h "+String(m%60).padStart(2,"0")+" min";}
 function pick(){if(!mouse.in)return;ray.setFromCamera(ptr,camera);
-  const ih=ray.intersectObjects(incHit,false);if(ih.length){const c=INC[ih[0].object.userData.i];
+  const ih=ray.intersectObjects(incHit.filter((_,i)=>incM[i].g.visible),false);if(ih.length){const c=INC[ih[0].object.userData.i];
     tip.innerHTML=`<b>${c.n}</b><span class="k">${c.d.split("-").reverse().join(".")} · obiekt poza Ukrainą</span><br>${c.t}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
     tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");setHover(-1);return;}
   const hits=ray.intersectObjects([drones,missiles],false);
   if(hits.length){const h=hits[0],P=h.object===drones?PD:PM,p=P.pool[h.instanceId];
     if(p&&p.on){const km=p.r.km*(1-Math.min(p.t,1)),hrs=km/(p.r.drone?185:800);
-      tip.innerHTML=`<b>${p.kind==="m"?"Rakieta manewrująca":"Dron typu Shahed"}</b><span class="k">cel:</span> ${CITYN[p.r.city]} <span class="k">·</span> ${SRCN[p.r.src]}<br><span class="k">do celu:</span> ${Math.round(km)} km <span class="k">·</span> ${fmtT(hrs)}`;
+      tip.innerHTML=`<b>${p.kind==="m"?"Rakieta · model":"BSP · model"}</b><span class="k">kierunek ilustracyjny:</span> ${CITYN[p.r.city]} <span class="k">·</span> ${SRCN[p.r.src]}<br><span class="k">do celu:</span> ${Math.round(km)} km <span class="k">·</span> ${fmtT(hrs)}<br><span class="k">1 sylwetka = ${p.evt?p.weight+(p.weight===1?" obiekt w modelu":" obiektów w modelu"):"umowny strumień"}; czas orientacyjny</span>`;
       tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");setHover(-1);return;}}
   if(ray.ray.intersectPlane(ground,hitP)){const lon=lonOf(hitP.x),lat=latOf(hitP.z),i=inPoly(lon,lat)?oblastAt(lon,lat):-1;setHover(i);
     if(i>=0){const o=GEO.obl[i],n=oblHits[i].filter(h=>h[0]>day-90).length;
-      tip.innerHTML=`<b>${o.city?o.n:"obwód "+o.n}</b>${o.w?'<span class="k">zachód Ukrainy</span><br>':""}<span class="k">trafień w symulacji, ostatnie 90 dni:</span> ${n}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
+      tip.innerHTML=`<b>${o.city?o.n:"obwód "+o.n}</b>${o.w?'<span class="k">zachód Ukrainy</span><br>':""}<span class="k">zakończeń tras w modelu, ostatnie 90 dni:</span> ${n}<br><span class="k">kliknij, żeby zobaczyć szczegóły</span>`;
       tip.style.left=mouse.x+"px";tip.style.top=mouse.y+"px";tip.classList.add("on");return;}}
   tip.classList.remove("on");}
 
@@ -703,7 +742,7 @@ const panel=document.getElementById("panel"),pc=document.getElementById("pc");
 let downAt=null;
 renderer.domElement.addEventListener("pointerdown",e=>{downAt=[e.clientX,e.clientY];setPtr(e);});
 renderer.domElement.addEventListener("pointerup",e=>{if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>5){downAt=null;return;}downAt=null;
-  ray.setFromCamera(ptr,camera);const ih=ray.intersectObjects(incHit,false);if(ih.length){selectInc(ih[0].object.userData.i);return;}
+  ray.setFromCamera(ptr,camera);const ih=ray.intersectObjects(incHit.filter((_,i)=>incM[i].g.visible),false);if(ih.length){selectInc(ih[0].object.userData.i);return;}
   if(!ray.ray.intersectPlane(ground,hitP))return;const lon=lonOf(hitP.x),lat=latOf(hitP.z);
   const i=inPoly(lon,lat)?oblastAt(lon,lat):-1;if(i>=0)selectObl(i);else closePanel();});
 function selectInc(i){closePanel();const c=INC[i];
@@ -712,13 +751,13 @@ function selectInc(i){closePanel();const c=INC[i];
 document.getElementById("px").onclick=closePanel;
 function closePanel(){if(selObl>=0)oblLines[selObl].visible=false;selObl=-1;panel.classList.remove("on");}
 function selectObl(i){if(selObl>=0)oblLines[selObl].visible=false;selObl=i;const o=GEO.obl[i],l=oblLines[i];l.visible=layers.obl;l.material.color.set(0xFFB070);l.material.opacity=1;
-  const rows=[["trafień w symulacji, ostatnie 90 dni",oblHits[i].filter(h=>h[0]>day-90).length],["od ostatniego przewinięcia",oblHits[i].length]];
-  const evs=EV.filter(e=>e.f*SPAN<=day&&e.west.some(w=>oblastAt(CITY[w[1]][0],CITY[w[1]][1])===i));
-  let html=`<h3>${o.city?o.n:"obwód "+o.n}</h3><div class="sub">${o.w?"zachód Ukrainy · ":""}${GEO.obl[i].p.length} pkt granicy</div>`;
+  const rows=[["zakończeń tras w modelu, ostatnie 90 dni",oblHits[i].filter(h=>h[0]>day-90).length],["od ostatniego przewinięcia",oblHits[i].length]];
+  const evs=EV.filter(e=>!e.region&&e.f*SPAN<=day&&e.west.some(w=>oblastAt(CITY[w[1]][0],CITY[w[1]][1])===i));
+  let html=`<h3>${o.city?o.n:"obwód "+o.n}</h3><div class="sub">${o.w?"zachód Ukrainy · ":""}wybrane wpisy, nie pełna historia nalotów</div>`;
   rows.forEach(r=>html+=`<div class="row"><span>${r[0]}</span><b>${r[1]}</b></div>`);
   html+=evs.length?`<ul class="evl">`+evs.map(e=>{const w=e.west.filter(w=>oblastAt(CITY[w[1]][0],CITY[w[1]][1])===i).reduce((s,w)=>s+w[2],0);
-    return `<li><i>${e.d}</i>${e.h}<br><span style="opacity:.7">${w} ${w===1?"obiekt":"obiektów"} potwierdzonych w ten obwód</span></li>`;}).join("")+`</ul>`
-    :`<p style="margin:10px 0 0;opacity:.65;font-size:12.5px">Brak udokumentowanych nalotów z podaną liczbą obiektów do tej daty.</p>`;
+    return `<li><i>${e.d}</i>${e.h}<br><span style="opacity:.7">${w} obiektów przypisanych w zestawie${e.source?" · źródło liczby pod nalotem":" · liczba do weryfikacji"}</span></li>`;}).join("")+`</ul>`
+    :`<p style="margin:10px 0 0;opacity:.65;font-size:12.5px">Brak wpisów z liczbą obiektów w tym zestawie do wybranej daty. Nie oznacza to braku ataków.</p>`;
   pc.innerHTML=html;panel.classList.add("on");flyToPoint(px(o.c[0]),pz(o.c[1]),34);}
 
 /* warstwy */
@@ -732,71 +771,97 @@ applyLayers();
 
 /* ══════════════ 8. OŚ CZASU ══════════════ */
 const track=document.getElementById("track"),monthBars=[];
-{const keyD=(y,m)=>Date.UTC(y,m-1,1),mx=Math.max(...SERIES.map(x=>x[4]&&x[4]<dim(x[0],x[1])?x[2]/x[4]*dim(x[0],x[1]):x[2]));
- SERIES.forEach(sr=>{const st=(keyD(sr[0],sr[1])-T0)/DAY/SPAN,en=(keyD(sr[1]===12?sr[0]+1:sr[0],sr[1]===12?1:sr[1]+1)-T0)/DAY/SPAN,d=document.createElement("div");
-   const part=sr[4]&&sr[4]<dim(sr[0],sr[1]),proj=part?sr[2]/sr[4]*dim(sr[0],sr[1]):sr[2];
-   d.className="bar"+(sr[3]?" m":"")+(part?" part":"");d.style.left=(st*100)+"%";d.style.width="calc("+((en-st)*100)+"% - 1px)";d.style.height=Math.max(1.5,(proj/mx)*52)+"px";
-   d.title=sr[0]+"-"+String(sr[1]).padStart(2,"0")+": "+sr[2].toLocaleString("pl-PL")+(sr[3]?"":" (wyliczone)")+(part?" do "+sr[4]+". dnia, słupek przeskalowany do pełnego miesiąca":"");track.appendChild(d);monthBars.push({el:d,st:st*SPAN,en:en*SPAN});});
- EV.forEach((e,i)=>{const d=document.createElement("div");d.className="ev";d.title=e.d+" — "+e.h;d.style.left=(e.f*100)+"%";
-   d.addEventListener("pointerdown",ev=>{ev.stopPropagation();seekTo(e.f*SPAN,false);lastEv=i;evEls[i].classList.add("hit");startNight(i,true);playing=true;pb.textContent="Pauza";});track.appendChild(d);});
+{const keyD=(y,m)=>Date.UTC(y,m-1,1),mx=Math.max(...SERIES.map(x=>x[2]));
+ SERIES.forEach(sr=>{const st=(keyD(sr[0],sr[1])-T0)/DAY/SPAN,en=Math.min(1,(Date.UTC(sr[0],sr[1],1)-T0)/DAY/SPAN),d=document.createElement("div");
+   const part=sr[4]&&sr[4]<dim(sr[0],sr[1]);
+   d.className="bar"+(sr[3]?" m":"")+(part?" part":"");d.style.left=(st*100)+"%";d.style.width="calc("+((en-st)*100)+"% - 1px)";d.style.height=Math.max(1.5,(sr[2]/mx)*52)+"px";
+   d.title=sr[0]+"-"+String(sr[1]).padStart(2,"0")+": "+Math.round(sr[2]).toLocaleString("pl-PL")+" BSP"+(sr[3]?"":" (szacunek)")+(part?" · raporty z "+sr[4]+" / "+dim(sr[0],sr[1])+" dni, bez ekstrapolacji":"");track.appendChild(d);monthBars.push({el:d,st:st*SPAN,en:en*SPAN});});
+ EV.forEach((e,i)=>{const d=document.createElement("button");d.className="ev";d.title=e.d+" — "+e.h;d.setAttribute("aria-label",d.title);d.style.left=(e.f*100)+"%";
+   d.addEventListener("pointerdown",ev=>ev.stopPropagation());d.onclick=()=>{seekTo(e.f*SPAN);startNight(i);playing=true;updateHUD();};track.appendChild(d);});
  [2023,2024,2025,2026].forEach(y=>{const f=(Date.UTC(y,0,1)-T0)/DAY/SPAN,d=document.createElement("div");d.className="yr";d.style.left=(f*100)+"%";d.textContent=y;track.appendChild(d);});}
 INC.forEach(c=>{const d=document.createElement("div");d.className="inc";d.title=c.d+" — "+c.n;d.style.left=(c.f*100)+"%";track.appendChild(d);});
 const evEls=[...track.querySelectorAll(".ev")],tFill=document.getElementById("tFill"),tHead=document.getElementById("tHead");
 
 /* ══════════════ 9. STAN I PĘTLA ══════════════ */
 const RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
-let day=0,speed=3,playing=!RM,cum=0,queue=[],lastEv=-1,westShow=["—",0],westCum=0;
-let night=null,nightHit=0,nightInt=0;   // night: {i,startDay,h,endH,westN}
-const HRATE=()=>.85*Math.sqrt(speed/3);   // godzin symulacji na sekundę podczas nocy nalotu
+let day=0,speed=3,playing=!RM,cum=0,queue=[],lastEv=-1,westCum=0,ending=false,finished=false;
+let night=null,nightHit=0,nightInt=0;
+const HRATE=()=>.35*speed;
 const eInc=document.getElementById("sInc"),nFill=document.getElementById("nFill"),nTxt=document.getElementById("nTxt");
 const eDate=document.getElementById("date"),eDay=document.getElementById("day"),eRate=document.getElementById("sRate"),eTot=document.getElementById("sTot"),
   eWest=document.getElementById("sWest"),eWestCum=document.getElementById("sWestCum"),fl=document.getElementById("flash"),fh=document.getElementById("fh"),fp=document.getElementById("fp");
-const nf=new Intl.NumberFormat("pl-PL");
-function monthAt(d){const t=new Date(T0+d*DAY),y=t.getUTCFullYear(),m=t.getUTCMonth()+1;for(const s of SERIES)if(s[0]===y&&s[1]===m)return s;return null;}
-function cumTo(d){const t=T0+d*DAY;let sum=0;for(const s of SERIES){const a=Date.UTC(s[0],s[1]-1,1),b=s[4]?a+s[4]*DAY:Date.UTC(s[1]===12?s[0]+1:s[0],s[1]===12?0:s[1],1);if(b<=t)sum+=s[2];else if(a<t)sum+=s[2]*((t-a)/(b-a));}return sum;}
-function seekTo(d,replayEvents){day=Math.max(0,Math.min(SPAN,d));cum=cumTo(day);lastEv=-1;for(let i=0;i<EV.length;i++)if(EV[i].f*SPAN<=day)lastEv=i;
+const endCard=document.getElementById("endCard"),nf=new Intl.NumberFormat("pl-PL"),dailyByDate=new Map((DAILY||[]).map(r=>[r.d,r]));
+const displayTime=()=>Math.min(T0+day*DAY,T1-1);
+function monthAt(d){const t=new Date(Math.min(T0+d*DAY,T1-1));return SERIES.find(s=>s[0]===t.getUTCFullYear()&&s[1]===t.getUTCMonth()+1)||null;}
+function rateAt(d){const t=new Date(Math.min(T0+d*DAY,T1-1)),key=t.toISOString().slice(0,10);
+  if(DAILY&&key>=DAILY_SINCE)return dailyByDate.has(key)?dailyByDate.get(key).uav:null;
+  const m=monthAt(d);return m?m[2]/(m[4]||dim(m[0],m[1])):null;}
+function cumTo(d){return cumulativeAt(T0+d*DAY,SERIES,DAILY,DAILY_SINCE);}
+function clearRoutes(){while(routeLines.children.length>MAIN.length){const l=routeLines.children.at(-1);routeLines.remove(l);
+  let i=flowMats.indexOf(l.material);if(i>=0)flowMats.splice(i,1);i=lineMats.indexOf(l.material);if(i>=0)lineMats.splice(i,1);
+  l.geometry.dispose();l.material.dispose();}}
+function clearTransient(){killAll();queue=[];night=null;spawn.acc=0;heatClear();clearRoutes();
+  fxLive.forEach(f=>{f.slot.m.visible=false;f.slot.on=false;});fxLive.length=0;
+  for(let i=0;i<SPN;i++){sLife[i]=0;sPos[i*3+1]=-9999;}sGeo.attributes.position.needsUpdate=true;
+  oblHits.forEach(h=>h.length=0);heatFadeT=0;heatUpT=0;tip.classList.remove("on");closePanel();
+  clearTimeout(startNight._t);fl.classList.remove("on");}
+function seekTo(d,replayEvents=false){day=Math.max(0,Math.min(SPAN,d));ending=false;finished=false;endCard.hidden=true;
+  clearTransient();lastEv=-1;for(let i=0;i<EV.length;i++)if(EV[i].f*SPAN<=day)lastEv=i;
   lastInc=-1;for(let i=0;i<INC.length;i++)if(INC[i].f*SPAN<=day)lastInc=i;
-  evEls.forEach((el,i)=>el.classList.toggle("hit",EV[i].f*SPAN<=day));killAll();queue=[];night=null;heatClear();fxLive.forEach(f=>{f.slot.m.visible=false;f.slot.on=false;});fxLive.length=0;
-  for(let i=0;i<SPN;i++){sLife[i]=0;sPos[i*3+1]=-9999;}oblHits.forEach(h=>h.length=0);
-  westShow=lastEv>=0?[EV[lastEv].n,0]:["—",0];westCum=0;for(let i=0;i<=lastEv;i++)westCum+=EV[i].nv;
-  if(replayEvents&&lastEv>=0&&day-EV[lastEv].f*SPAN<3)startNight(lastEv,false);updateHUD();}
-function startNight(i,announce){const e=EV[i];
-  while(routeLines.children.length>MAIN.length){const l=routeLines.children[routeLines.children.length-1];routeLines.remove(l);let fi=flowMats.indexOf(l.material);if(fi>=0)flowMats.splice(fi,1);fi=lineMats.indexOf(l.material);if(fi>=0)lineMats.splice(fi,1);}
-  queue=[];nightHit=0;nightInt=0;let maxH=0,westN=0;
-  /* uderzenia na zachód: 1 sylwetka = 1 potwierdzony obiekt; starty rozłożone na 2 h */
-  e.west.forEach(w=>{const drone=w[3]==="d",rt=makeRoute(w[0],w[1],drone);addRibbon(rt,drone?0xFF8A5C:0xCFE6F2,.85,true);SRCM[w[0]].visible=true;
-    for(let n=0;n<w[2];n++){const at=(n/Math.max(1,w[2]-1))*2.0;maxH=Math.max(maxH,at+rt.durH);westN++;
-      queue.push({r:rt,kind:drone?"w":"m",at,kill:e.kill&&Math.random()<e.kill?.34+Math.random()*.42:2,scale:drone?.92:1});}});
-  /* reszta salwy krajowej na osie wschód–centrum: drony 1:5, rakiety 1:1; ~90 % przechwyceń (średnia krajowa) */
-  const wd=e.west.filter(w=>w[3]==="d").reduce((a,w)=>a+w[2],0),wm=e.west.filter(w=>w[3]==="m").reduce((a,w)=>a+w[2],0);
-  const nd=Math.round(Math.max(0,(e.nat?e.nat.d:0)-wd)/5),nm=Math.max(0,(e.nat?e.nat.m:0)-wm);
-  for(let n=0;n<nd;n++){const rt=mainRoutes[(Math.random()*mainRoutes.length)|0],at=Math.random()*2.5;maxH=Math.max(maxH,at+rt.durH);
-    queue.push({r:rt,kind:"d",at,kill:Math.random()<.9?.3+Math.random()*.6:2,scale:.62+Math.random()*.18});}
-  for(let n=0;n<nm;n++){const rt=mainRoutesM[(Math.random()*mainRoutesM.length)|0],at=1.5+Math.random()*1.2;maxH=Math.max(maxH,at+rt.durH);
-    queue.push({r:rt,kind:"m",at,kill:Math.random()<.85?.3+Math.random()*.6:2,scale:1});}
-  queue.sort((a,b)=>a.at-b.at);
-  night={i,startDay:e.f*SPAN,h:0,endH:maxH+.6,westN};day=night.startDay;
-  westShow=[e.n,0];if(announce!==false){westCum+=e.nv;fh.textContent=e.h;fp.textContent=e.t;fl.classList.add("on");clearTimeout(startNight._t);startNight._t=setTimeout(()=>fl.classList.remove("on"),12000);}}
-function updateHUD(){const t=new Date(T0+day*DAY);const hh=String(t.getUTCHours()).padStart(2,"0")+":"+String(t.getUTCMinutes()).padStart(2,"0");
-  eDate.textContent=t.getUTCDate()+" "+MON[t.getUTCMonth()]+" "+t.getUTCFullYear()+(night?", "+hh:"");
-  eDay.textContent=night?"noc nalotu, czas zwolniony: 1 s ≈ "+HRATE().toFixed(1).replace(".",",")+" h · zachód: "+nightHit+" / "+night.westN+" doleciało · przechwycone: "+nightInt
-    :"dzień "+nf.format(Math.round(day))+" wojny · 1 s ≈ "+(speed*14)+" dni"+(small?" · tło symboliczne":" · strumień tła symboliczny, gęstość ∝ tempu dobowemu");
-  document.body.classList.toggle("night",!!night);
-  if(night){nFill.style.width=Math.min(100,night.h/night.endH*100).toFixed(1)+"%";nTxt.textContent="godzina "+Math.floor(night.h)+" z ~"+Math.ceil(night.endH)+" nocy";}
-  let ic=0;const nowS=performance.now()/1000;
-  INC.forEach((c,i)=>{const on=c.f*SPAN<=day;incM[i].g.visible=on;if(on){ic++;const fresh=day-c.f*SPAN<45;const sc=fresh?1+.3*Math.sin(nowS*5):1;incM[i].rg.scale.set(sc,sc,1);incRingMat.opacity=.75;}});
-  eInc.textContent=ic;
-  const m=monthAt(day),rate=m?m[2]/(m[4]||30.4):0;eRate.textContent=(m&&m[3]?"":"~")+nf.format(Math.round(rate));eTot.textContent=nf.format(Math.round(cum));eWest.textContent=westShow[0];eWestCum.textContent=nf.format(westCum);
-  monthBars.forEach(b=>{b.el.classList.toggle("past",b.en<=day);b.el.classList.toggle("now",b.st<=day&&day<b.en);});tFill.style.width=(day/SPAN*100)+"%";tHead.style.left=(day/SPAN*100)+"%";}
+  if(day>=SPAN)finishPlayback();else if(replayEvents&&lastEv>=0&&Math.abs(day-EV[lastEv].f*SPAN)<1e-7)startNight(lastEv);
+  updateHUD();}
+function announceEvent(e){fh.textContent=e.h;fp.textContent=e.t+(e.source?"":" Liczba dla zachodu bez zweryfikowanego źródła w tym zestawie; nie wchodzi do sumy ze źródeł.");fl.classList.add("on");
+  const a=document.getElementById("eventSource");a.hidden=!e.source;if(e.source)a.href=e.source;
+  clearTimeout(startNight._t);startNight._t=setTimeout(()=>fl.classList.remove("on"),12000);}
+function startNight(i){const e=EV[i];clearTransient();lastEv=i;
+  const salvo=buildSalvo(e,makeRoute,mainRoutes,mainRoutesM);queue=salvo.queue;nightHit=0;nightInt=0;
+  const seen=new Set();queue.filter(q=>q.west).forEach(q=>{if(seen.has(q.r))return;seen.add(q.r);
+    addRibbon(q.r,q.kind==="w"?0xFF8A5C:0xCFE6F2,.7,true);SRCM[q.r.src].visible=true;});
+  night={i,startDay:e.f*SPAN,h:0,endH:salvo.endH,westN:salvo.westN,settle:0};day=night.startDay;announceEvent(e);updateHUD();}
+function finishPlayback(){day=SPAN;ending=false;finished=true;playing=false;ctr.autoRotate=false;
+  clearTimeout(startNight._t);fl.classList.remove("on");endCard.hidden=false;
+  document.getElementById("endText").textContent="Dane do "+DATA_TO.split("-").reverse().join(".")+" · ≈ "+nf.format(Math.round(cumTo(SPAN)))+" BSP w serii. To suma raportów i wcześniejszych szacunków, bez rakiet.";
+  syncPlayButton();}
+function syncPlayButton(){pb.textContent=finished?"Odtwórz ponownie":playing?"Pauza":"Odtwórz";pb.setAttribute("aria-pressed",String(playing));}
+function updateHUD(){cum=cumTo(day);const t=new Date(displayTime()),key=t.toISOString().slice(0,10);
+  eDate.textContent=t.getUTCDate()+" "+MON[t.getUTCMonth()]+" "+t.getUTCFullYear();
+  eDay.textContent=night?"model nalotu · 1 s ≈ "+HRATE().toFixed(2).replace(".",",")+" h · "+(night.westN?"zachód: "+nightHit+" / "+night.westN+" tras zakończonych · "+nightInt+" przechwyceń w modelu":"zachód: brak liczby obiektów w zestawie")
+    :finished?"Koniec dostępnych danych — możesz przewinąć lub odtworzyć ponownie"
+    :ending?"Koniec osi czasu · kończenie ostatnich lotów"
+    :"dzień "+nf.format(Math.floor(day)+1)+" inwazji · 1 s ≈ "+(speed*14)+" dni · trasy ilustracyjne";
+  if(!playing&&!finished)eDay.textContent="Pauza · "+eDay.textContent;
+  document.body.classList.toggle("night",!!night);document.body.classList.toggle("paused",!playing);
+  if(night){nFill.style.width=(night.endH?Math.min(100,night.h/night.endH*100):100).toFixed(1)+"%";
+    nTxt.textContent="model: "+night.h.toFixed(1).replace(".",",")+" / "+night.endH.toFixed(1).replace(".",",")+" h";}
+  let ic=0;INC.forEach((c,i)=>{const on=c.f*SPAN<=day;incM[i].g.visible=on;if(on)ic++;});eInc.textContent=ic;
+  const m=monthAt(day),rate=rateAt(day),exact=DAILY&&key>=DAILY_SINCE;
+  eRate.textContent=rate===null?"—":(exact?"":"≈ ")+nf.format(Math.round(rate));
+  document.getElementById("rateLabel").textContent=exact?"BSP w raporcie dziennym":"BSP / dzień · średnia miesiąca";
+  const report=dailyByDate.get(key),link=document.getElementById("dailySource");link.hidden=!report?.id;
+  if(report?.id)link.href="https://t.me/kpszsu/"+report.id;
+  eTot.textContent=T0+day*DAY<Date.UTC(2022,8,1)?"—":nf.format(Math.round(cum));
+  const past=EV.filter(e=>e.f*SPAN<=day),latest=past.at(-1);
+  eWest.textContent=latest?latest.n:"—";
+  eWest.title=latest?latest.d+" · "+(latest.source?"liczba skierowanych obiektów, nie trafień":"wpis z zestawu, bez zweryfikowanego źródła liczby"):"Brak wpisu";
+  westCum=past.filter(e=>e.source).reduce((sum,e)=>sum+e.nv,0);eWestCum.textContent=(past.some(e=>e.source&&/≈|~/.test(e.n))?"≈ ":"")+nf.format(westCum);
+  evEls.forEach((el,i)=>el.classList.toggle("hit",EV[i].f*SPAN<=day));
+  monthBars.forEach(b=>{b.el.classList.toggle("past",b.en<=day);b.el.classList.toggle("now",b.st<=day&&day<b.en);});
+  tFill.style.width=(day/SPAN*100)+"%";tHead.style.left=(day/SPAN*100)+"%";
+  document.getElementById("timelinePosition").value=day;syncPlayButton();}
 track.addEventListener("pointerdown",e=>{if(e.target.classList.contains("ev"))return;const seek=ev=>{const r=track.getBoundingClientRect();seekTo(((ev.clientX-r.left)/r.width)*SPAN,true);};seek(e);
   const mv=ev=>seek(ev),up=()=>{removeEventListener("pointermove",mv);removeEventListener("pointerup",up);};addEventListener("pointermove",mv);addEventListener("pointerup",up);});
-const pb=document.getElementById("play");pb.textContent=playing?"Pauza":"Odtwórz";
-function togglePlay(){playing=!playing;pb.textContent=playing?"Pauza":"Odtwórz";}
+const pb=document.getElementById("play");
+function togglePlay(){if(finished){restart();return;}playing=!playing;updateHUD();}
+function restart(){seekTo(0);startNight(0);playing=true;updateHUD();}
 pb.onclick=togglePlay;
-document.getElementById("skip").onclick=()=>{if(!night)return;const d=night.startDay+1;night=null;seekTo(d,false);playing=true;pb.textContent="Pauza";fl.classList.remove("on");};
-document.getElementById("rewind").onclick=()=>{seekTo(0,false);playing=true;pb.textContent="Pauza";};
+document.getElementById("skip").onclick=()=>{if(!night)return;const d=night.startDay+1;seekTo(d);updateHUD();};
+document.getElementById("rewind").onclick=restart;
+document.getElementById("replay").onclick=restart;
+document.getElementById("toEnd").onclick=()=>seekTo(SPAN);
+const timelinePosition=document.getElementById("timelinePosition");timelinePosition.max=SPAN;
+timelinePosition.oninput=()=>seekTo(+timelinePosition.value);
 document.querySelectorAll(".spd").forEach(b=>b.onclick=()=>setSpeed(+b.dataset.s));
-function setSpeed(s){speed=s;document.querySelectorAll(".spd").forEach(x=>x.classList.toggle("on",+x.dataset.s===s));}
+function setSpeed(s){speed=s;document.querySelectorAll(".spd").forEach(x=>x.classList.toggle("on",+x.dataset.s===s));updateHUD();}
 const qb=document.getElementById("quality");qb.textContent="Jakość: "+(hiQ?"wysoka":"oszczędna");qb.onclick=()=>{hiQ=!hiQ;qb.textContent="Jakość: "+(hiQ?"wysoka":"oszczędna");renderer.setPixelRatio(Math.min(devicePixelRatio,hiQ?2:1));buildComposer();};
 addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"||e.target.tagName==="BUTTON")return;
   if(e.code==="Space"){e.preventDefault();togglePlay();}else if(e.key==="ArrowRight"){seekTo(day+30,true);}else if(e.key==="ArrowLeft"){seekTo(day-30,true);}
@@ -807,28 +872,43 @@ function resize(){const w=stage.clientWidth,h=stage.clientHeight;if(!w||!h)retur
 addEventListener("resize",resize);if(document.fonts)document.fonts.ready.then(()=>{lblReset=true;});
 
 const proj=new THREE.Vector3();let last=performance.now();
-document.getElementById("fresh").textContent="dane Sił Powietrznych do "+DATA_TO.split("-").reverse().join(".")+(DATA_SRC==="feed"?" · feed":" · wbudowane");
-seekTo(0,false);document.getElementById("boot").classList.add("gone");setTimeout(()=>document.getElementById("boot").remove(),700);
-function loop(now){requestAnimationFrame(loop);const dt=Math.min((now-last)/1000,.05);last=now;stepTween(dt);ctr.update();
-  let dh=0;
-  if(playing){
-    if(night){
-      dh=dt*HRATE();night.h+=dh;day=night.startDay+night.h/24;
-      let g=0;while(queue.length&&queue[0].at<=night.h&&g++<80){const q=queue.shift();spawn(q.r,q.kind,q.kill,q.scale,true);}
-      if(night.h>=night.endH&&!queue.length)night=null;
-    }else{
-      const prev=day;day=Math.min(SPAN,day+dt*speed*14);cum+=cumTo(day)-cumTo(prev);
-      for(let i=lastEv+1;i<EV.length;i++)if(EV[i].f*SPAN<=day){lastEv=i;evEls[i].classList.add("hit");startNight(i,true);break;}
-      for(let i=lastInc+1;i<INC.length;i++)if(INC[i].f*SPAN<=day){lastInc=i;if(!night){fh.textContent="Poza Ukrainą: "+INC[i].n;fp.textContent=INC[i].t;fl.classList.add("on");clearTimeout(startNight._t);startNight._t=setTimeout(()=>fl.classList.remove("on"),9000);}break;}
-      if(day>=SPAN){playing=false;pb.textContent="Odtwórz";}
-    }
-    updateHUD();
+document.getElementById("earlyTotal").textContent=nf.format(SERIES.filter(s=>s[0]===2025&&s[1]<=7).reduce((n,s)=>n+s[2],0));
+document.getElementById("measuredTotal").textContent=nf.format(SERIES.filter(s=>s[0]===2025&&s[1]>=8||s[0]===2026&&s[1]<=7).reduce((n,s)=>n+s[2],0));
+document.getElementById("dailyTotal").textContent=DAILY?nf.format(DAILY.reduce((n,r)=>n+r.uav,0)):"brak danych";
+document.getElementById("fresh").textContent="dane do "+DATA_TO.split("-").reverse().join(".");
+const expectedDays=DAILY?Math.round((Date.parse(DATA_TO)-Date.parse(DAILY_SINCE))/DAY)+1:0;
+document.getElementById("dataStatus").textContent=DATA_ERROR||("Dane do "+DATA_TO.split("-").reverse().join(".")+" · "+DAILY.length+" / "+expectedDays+" dni z raportem od 01.08.2026. Raporty obejmują wskazane w źródle okna, nie zawsze pełną dobę.");
+seekTo(0);startNight(0);ctr.autoRotate=false;
+document.getElementById("boot").classList.add("gone");setTimeout(()=>document.getElementById("boot").remove(),700);
+addEventListener("visibilitychange",()=>{last=performance.now();});
+let motionTime=0;
+function advancePlayback(dt){
+  if(!playing)return;
+  if(night){
+    night.h=Math.min(night.endH,night.h+dt*HRATE());day=Math.min(SPAN,night.startDay+night.h/24);
+    while(queue.length&&queue[0].at<=night.h){if(!spawn(queue[0],true))break;queue.shift();}
+  }else if(!ending){
+    const next=EV[lastEv+1],target=Math.min(SPAN,day+dt*speed*14);
+    if(next&&next.f*SPAN<=target){startNight(lastEv+1);}
+    else{day=target;if(day>=SPAN)ending=true;}
+    if(!night&&!ending){const rate=rateAt(day);spawn.acc=(spawn.acc||0)+dt*(rate??0)/22*(speed/3);
+      let g=0;while(spawn.acc>=1&&g++<40){spawn.acc-=1;spawn({r:mainRoutes[(Math.random()*mainRoutes.length)|0],kind:"d",scale:.7});}}
   }
-  /* strumień tła między nalotami: gęstość rośnie z tempem, żeby liczba trafień na dzień symulacji była stała */
-  if(!night){const m=monthAt(day);if(m){spawn.acc=(spawn.acc||0)+dt*(m[2]/(m[4]||30.4))/22*Math.pow(speed/3,.6);let g=0;while(spawn.acc>=1&&g++<40){spawn.acc-=1;spawn(mainRoutes[(Math.random()*mainRoutes.length)|0],"d",2,.62+Math.random()*.18,false);}}}
-  const nowS=now/1000;stepPool(PD,dt,dh,nowS);stepPool(PM,dt,dh,nowS);stepFx(dt);stepSparks(dt);
+  const hour=night?.h??0;
+  motionTime+=dt;stepPool(PD,dt,hour,motionTime);stepPool(PM,dt,hour,motionTime);stepFx(dt);stepSparks(dt);
+  if(night&&night.h>=night.endH&&!queue.length&&!liveEventFlights()){
+    night.settle+=dt;
+    if(night.settle>=1.6){night=null;clearRoutes();fl.classList.remove("on");if(day>=SPAN)ending=true;}
+  }
+  if(ending&&!liveFlights()&&!fxLive.length&&!sLife.some(v=>v>0))finishPlayback();
+  while(lastInc+1<INC.length&&INC[lastInc+1].f*SPAN<=day)lastInc++;
   waterN.offset.x+=dt*.006;waterN.offset.y+=dt*.004;flowMats.forEach(mm=>mm.dashOffset-=dt*1.6);
-  heatFadeT+=dt;if(heatFadeT>.3){heatFadeT=0;heatFade();}heatUpT+=dt;if(heatDirty&&heatUpT>.09){heatUpT=0;heatDirty=false;heatTex.needsUpdate=true;}
+  heatFadeT+=dt;if(heatFadeT>.3){heatFadeT=0;heatFade();}
+  updateHUD();
+}
+function loop(now){requestAnimationFrame(loop);const dt=document.hidden?0:Math.max(0,Math.min((now-last)/1000,.25));last=now;stepTween(dt);ctr.update();
+  advancePlayback(dt);
+  heatUpT+=dt;if(heatDirty&&heatUpT>.09){heatUpT=0;heatDirty=false;heatTex.needsUpdate=true;}
   rayT+=dt;if(rayT>.05){rayT=0;pick();}
   const w=stage.clientWidth,h=stage.clientHeight,dist=camera.position.distanceTo(ctr.target);
   const oblOp=Math.max(0,Math.min(1,(62-dist)/22));

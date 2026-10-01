@@ -18,6 +18,8 @@ jobs:
           python-version: "3.12"
       - name: Pobierz ostatnie 10 dni z t.me/s/kpszsu
         run: python scripts/scrape_af.py
+      - name: Sprawdź parser i spójność danych
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Commit, jeśli coś się zmieniło
         run: |
           git config user.name "af-bot"

@@ -1,59 +1,78 @@
 # Naloty na Ukrainę 2022–2026
 
-Trójwymiarowa wizualizacja rosyjskiej kampanii powietrznej przeciw Ukrainie od 24 lutego 2022,
-z naciskiem na jedno pytanie: **ile z tego dociera na zachód kraju.**
-
-Jeden plik, zero zależności poza three.js z CDN. Działa na GitHub Pages bez build stepu.
+Trójwymiarowa wizualizacja skali rosyjskich ataków i wybranych nalotów na zachód Ukrainy.
+Statyczna strona bez etapu budowania: `index.html`, moduł obliczeń `js/model.mjs`, dane JSON
+oraz three.js r160 z CDN. Lokalnie wymaga HTTP.
 
 **Strona:** https://agentsmill.github.io/naloty-ukraina/
 
-## Co pokazuje
+## Co oznaczają liczby
 
-| Warstwa | Skala | Podstawa |
-|---|---|---|
-| Główny strumień | umowna — gęstość proporcjonalna do bieżącego tempa dobowego | seria miesięczna wystrzeleń |
-| Uderzenia na zachód | **1:1** — tyle kropek, ile obiektów potwierdzono | komunikaty obwodowych administracji wojskowych |
-| Łuki i czasy przelotu | rzeczywista odległość ortodromiczna | 185 km/h dla Gerana-2, ok. 800 km/h dla rakiet manewrujących |
-| Relief terenu | przewyższenie ok. 40× | proceduralny, oparty na rzeczywistym układzie pasm |
-| Licznik narastający | przybliżony | suma serii miesięcznej |
-| Obiekty poza Ukrainą | wybór udokumentowanych przypadków | bursztynowe szpilki w Polsce, Mołdawii, Rumunii, na Łotwie i Litwie; lista `INC` w `index.html`, do rozszerzania |
+| Warstwa | Znaczenie |
+|---|---|
+| Główny strumień | Ilustracja natężenia, bez skali 1:1 i bez rzeczywistych miejsc trafień |
+| Wybrany nalot | Zachód: 1 sylwetka / obiekt scenariusza; pozostałe BSP w grupach do 5, rakiety pojedynczo |
+| Trasy | Umowne punkty startu i celu; niskie łuki o stałym tempie ruchu po długości krzywej |
+| Czas lotu | Odległość geograficzna / przyjęta prędkość (185 lub 800 km/h); nie rekonstrukcja każdej klasy broni |
+| BSP / dzień | Średnia miesiąca w starszej serii; od VIII 2026 liczba z konkretnego porannego raportu |
+| BSP narastająco | Wyłącznie BSP, bez rakiet; sumy miesięczne i szacunki plus dostępne raporty dzienne |
+| Zachód — ostatni wpis | Liczba przyjęta w zestawie; brak lub niezweryfikowane źródło opisane przy zdarzeniu |
+| Zachód — wpisy ze źródłem | Suma tylko wpisów ze wskazanym źródłem liczby; nie pełna suma ataków ani liczba trafień |
+| Poza Ukrainą | Liczba wybranych incydentów, nie obiektów; obejmuje przeloty i szczątki |
 
-## Skąd biorą się liczby i jak się aktualizują
+Odtwarzanie i przewijanie wyliczają liczniki z aktualnej daty. Powtórzenie zdarzenia nie dodaje
+ponownie tych samych liczb. Scenariusze używają stałego ziarna losowania, więc odtworzenia są identyczne.
+Nie losujemy skuteczności obrony na podstawie arbitralnej średniej krajowej.
 
-Do lipca 2026 seria miesięczna jest wbudowana w `index.html` (ISIS, Sztab Generalny, sumy roczne).
-Od sierpnia 2026 liczby dzienne przychodzą z porannych komunikatów Sił Powietrznych ZSU
-na Telegramie (kanał @kpszsu, publiczny podgląd t.me/s/kpszsu). To ten sam materiał źródłowy,
-z którego ISIS i dataset Petra Ivaniuka liczą miesiące, tylko bez pośrednika.
+## Dane i ograniczenia
 
-Mechanizm:
+- IX 2022 – XII 2024: wcześniejsze szacunki projektu; szare słupki. Nie zweryfikowano
+  w tym przeglądzie wszystkich pierwotnych źródeł tych oszacowań.
+- I 2025 – VII 2026: miesięczne liczby z tabel ISIS. Pierwsze siedem miesięcy 2025 ma
+  wartości 2629, 3904, 4198, 2422, 4003, 5438 i 6297, razem **28 891**.
+  VIII 2025 – VII 2026 daje **66 994** (wcześniej błędnie wpisano 62 994).
+- Od VIII 2026: suma **porannych** raportów, a nie pełnych dób. Sierpień: **4620 BSP**;
+  1–17 września: **2842 BSP** w sprawdzonym pliku. Skrypt aktualizuje kolejne dni.
+- Raport z 12 IX 2026 wcześniej został zastąpiony większym raportem dziennym (410 BSP).
+  Seria poranna zawiera teraz właściwy komunikat 77891 (129 BSP); nie oznacza to,
+  że tego dnia użyto tylko 129 BSP. Osobne ataki dzienne nie wchodzą do tej serii.
+- Wczesne szacunki i późniejsze raporty obejmują różne kategorie. BSP nie zawsze oznacza
+  Shahed-136; zbiorcza kategoria zawiera także wabiki i inne typy.
+- Brak raportu to brak danych. Częściowe słupki pokazują sumę dostępnych wpisów,
+  bez prognozy całego miesiąca. Szacunkowa interpolacja dotyczy tylko serii miesięcznej.
+- Około 163 obiekty z 5 X 2025 dotyczą obszaru dowództwa „Zachód”, nie samego obwodu lwowskiego.
+  Trasa do Lwowa jest ilustracyjna; ta liczba nie trafia do zestawienia dla pojedynczego obwodu.
+- Usunięto nieudokumentowane liczby ~40 (Tarnopol, 19 XI 2025), ~30 (Lwów, 24 III 2026)
+  oraz arbitralny podział 82 BSP między miasta (1 IV 2026). Zdarzenia pozostają na osi.
 
-1. `scripts/scrape_af.py` czyta podgląd kanału, wyciąga posty „У ніч на …", parsuje liczbę
-   ударних БпЛА, збито/подавлено, rakiety z podaną liczbą i „основні напрямки удару".
-   Zapisuje do `data/daily.json`. Domyślnie ostatnie 10 dni, z parametrem daty cofa się dalej.
-2. `.github/workflows/update-data.yml` uruchamia skrypt codziennie o 06:10 UTC i commituje
-   plik, jeśli się zmienił. Commit odświeża GitHub Pages sam.
-3. `index.html` przy starcie pobiera `data/daily.json` (ten sam origin, zero CORS), przelicza
-   miesiące od sierpnia 2026 i przesuwa koniec osi czasu na ostatni dzień z danymi. Bieżący
-   miesiąc ma słupek kreskowany, przeskalowany do pełnych 30 dni. Jeśli pliku nie ma albo
-   fetch nie zdąży w 3 s, strona używa wbudowanych wartości i pisze o tym w rogu sceny.
+Źródła sprawdzone 18 IX 2026:
 
-Ograniczenia źródła, nie skryptu: od maja 2026 Siły Powietrzne raportują tylko okno nocne
-(18:00–08:00), a od 10 sierpnia 2026 nie podają liczby części typów rakiet. Pole `msl`
-w feedzie jest więc dolnym ograniczeniem.
+- [ISIS — tabela 1 dla 2025 i I–VI 2026](https://isis-online.org/isis-reports/monthly-analysis-of-russian-shahed-136-deployment-against-ukraine)
+- [ISIS — VII–VIII 2026 i ograniczenia porannych raportów](https://isis-online.org/isis-reports/monthly-analysis-of-russian-shahed-136-deployment-against-ukraine-updated)
+- [Siły Powietrzne, 30 VII 2026](https://t.me/kpszsu/70754): 284 BSP, 74 rakiety wystrzelone,
+  320 przechwyconych celów łącznie, w tym 265 BSP; 55 dotyczyło przechwyconych rakiet.
+- [Siły Powietrzne, 3 VIII 2026](https://t.me/kpszsu/71299): 181 BSP wystrzelonych; 14 oznaczało trafienia.
+- [Siły Powietrzne, 17 IX 2026](https://t.me/kpszsu/78627): 157 BSP wystrzelonych,
+  131 przechwyconych celów łącznie, w tym 124 BSP; co najmniej 4 rakiety, pełna liczba nieznana.
+- [Siły Powietrzne, 6 VII 2023](https://t.me/kpszsu/3108): 10 Kalibrów, 7 przechwyceń.
+- [Administracja lwowska, 5 X 2025](https://t.me/kozytskyy_maksym_official/25016): około 163 cele w obszarze „Zachód”.
 
-| Okres | Wystrzeleń | Podstawa |
-|---|---:|---|
-| IX–XII 2022 | ~660 | suma roczna, rozłożona równo |
-| 2023 | ~3 300 | 2022 i 2023 razem ok. 4 000 (ISIS) |
-| I–IX 2024 | ~552/mies. | 6 987 za I–X minus zmierzony październik |
-| X 2024 | 2 023 | Sztab Generalny |
-| XI–XII 2024 | ~1 980/mies. | szacunek |
-| I–VII 2025 | ~4 127/mies. | suma roczna 54 538 minus zmierzone VIII–XII |
-| VIII 2025 – VII 2026 | 62 994 | seria miesięczna ISIS |
-| od VIII 2026 | codziennie | feed z @kpszsu |
+## Aktualizacja raportów
 
-Do 2024 liczono faktyczne Shahedy, od 2025 wszystkie BSP typu Shahed razem z wabikami.
-Licznik narastający miesza dwie definicje, stąd znak przybliżenia.
+`scripts/scrape_af.py` czyta publiczny podgląd Telegrama @kpszsu, wyłącznie poranne komunikaty
+„У ніч на …”. Sekcja wystrzeleń jest parsowana osobno od wyników obrony. Najnowsza korekta
+tego samego raportu ma pierwszeństwo nawet wtedy, gdy zmniejsza liczbę.
+
+Pola: `d` (data raportowanego nalotu), `id`, `source`, `coverage: "morning"`, `uav`,
+`uav_down` (wyłącznie BSP lub `null`), `down_total` (wszystkie cele), `msl`
+(pełna liczba wystrzelonych rakiet lub `null`), `msl_min` (znane minimum), `msl_complete`, `dirs`.
+
+Skrypt nie zamienia nieznanej liczby w zero. Błąd pobierania albo brak rozpoznanych raportów
+przerywa aktualizację; zapis jest atomowy. GitHub Actions uruchamia skrypt codziennie o 06:10 UTC.
+
+Strona waliduje i sortuje dane, usuwa duplikaty dat i pomija przyszłe wpisy.
+Po błędzie pobierania pokazuje jawny komunikat i kończy serię na 31 VII 2026,
+bez fikcyjnych wartości zastępczych dla kolejnych miesięcy.
 
 ## Dane geograficzne
 
@@ -71,16 +90,17 @@ Licznik narastający miesza dwie definicje, stąd znak przybliżenia.
 
 ## Interakcje
 
-- **Najechanie na obiekt w locie** — typ, cel, punkt startu, ile km i minut zostało do celu
-- **Najechanie na obwód** — nazwa i liczba trafień z ostatnich 90 dni symulacji
-- **Kliknięcie obwodu** — kamera dolatuje, panel pokazuje udokumentowane naloty w ten obwód
-  do bieżącej daty z liczbą potwierdzonych obiektów
-- **Kliknięcie znacznika na osi czasu** — skok do daty i odtworzenie nalotu
-- **Noc nalotu** — czas zwalnia do ok. godziny na sekundę; HUD pokazuje pasek postępu nocy i przycisk „Pomiń noc”
-- **Szpilka poza Ukrainą** — najechanie lub kliknięcie pokazuje, co i kiedy spadło w sąsiednim państwie
-- **Widoki** — cały kraj, zachód, front, z góry; płynny przelot kamery
-- **Warstwy** — poświata, trasy, obwody, sąsiedzi, cienie, pierścienie zasięgu 400/800/1200 km
-- **Klawiatura** — spacja pauza, strzałki ±30 dni, 1/2/3 prędkość, Esc zamyka panel
+- **Pauza** zatrzymuje loty, emisję tła, efekty i czas. Kamerę nadal można obracać.
+- **1× / 3× / 8×** skaluje liniowo zarówno oś czasu, jak i tempo modelu nalotu.
+- **Znacznik nalotu** uruchamia powtarzalny scenariusz. Koniec wymaga pustej kolejki,
+  ukończonych lotów i krótkiego wygaszenia efektów.
+- **Koniec osi** kończy ostatnie loty i pokazuje podsumowanie. „Odtwórz ponownie” zaczyna od 24 II 2022.
+- **Koniec danych** przechodzi bezpośrednio do podsumowania, czyszcząc bieżącą animację.
+- **Suwak** umożliwia przewijanie również klawiaturą. **Pomiń nalot** przechodzi do kolejnego dnia.
+- **Obwód** otwiera wpisy z zestawu; zakończenia tras w modelu są opisane osobno od danych historycznych.
+- **Obiekt w locie** pokazuje orientacyjny czas, dystans i wagę sylwetki w modelu.
+- **Spacja** — pauza, **strzałki** — ±30 dni, **1/2/3** — tempo, **Esc** — zamknięcie panelu.
+- Przy `prefers-reduced-motion` strona zaczyna w pauzie, bez obrotu kamery.
 
 ## Stack
 
@@ -113,7 +133,7 @@ python3 -m http.server 8000
 
 ```bash
 git init
-git add index.html README.md scripts data .github .gitignore
+git add index.html js README.md REVIEW.md scripts tests data .github .gitignore
 git commit -m "Wizualizacja 3D nalotów na Ukrainę 2022-2026"
 git branch -M main
 git remote add origin git@github.com:UZYTKOWNIK/REPO.git
@@ -128,8 +148,18 @@ Potem w repo:
 
 Po 1–2 minutach strona jest pod `https://UZYTKOWNIK.github.io/REPO/`.
 
-Nie potrzeba GitHub Actions ani `.nojekyll` — nie ma tu katalogów zaczynających się od
-podkreślnika, więc Jekyll niczego nie zje.
+Samo wyświetlanie strony nie wymaga GitHub Actions. Workflow jest potrzebny do automatycznej aktualizacji raportów.
+
+## Testy
+
+```bash
+node --test tests/model.test.mjs
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+Testy obejmują moment zakończenia lotu, pauzę i wygaszanie animacji, deterministyczne naloty,
+zgodność wag z salwą, brak podwójnego liczenia, luki w danych, granice miesięcy i regresje parsera
+na zapisanych fragmentach komunikatów. Szczegóły przeglądu: [REVIEW.md](REVIEW.md).
 
 ## Licencja
 
